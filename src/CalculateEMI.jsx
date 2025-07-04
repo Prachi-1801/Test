@@ -3,16 +3,64 @@ import { Button, TextField, Box, Typography } from "@mui/material";
 import { useState } from "react";
 import axios from "axios";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
+import { AgGridReact } from "ag-grid-react";
 
 var baseQuery = import.meta.env.VITE_API;
+
+function CreateTextField({
+  textFieldName,
+  requestFieldName,
+  handleFunc,
+  textStyle,
+}) {
+  textStyle = textStyle ? "space-between" : "";
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: textStyle,
+          padding: 10,
+          flexDirection: "row",
+        }}
+      >
+        <Typography display="inline" fontSize={20} style={{ padding: "10px" }}>
+          {textFieldName}
+        </Typography>
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <TextField
+            id={requestFieldName}
+            variant="outlined"
+            style={{ outlineColor: "white" }}
+            size="small"
+            value={requestFieldName}
+            onChange={handleFunc}
+            type="number"
+          />
+          {Number(requestFieldName) < 0 || requestFieldName.length == 0 ? (
+            <ErrorOutlineRoundedIcon />
+          ) : null}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function CalculateEMI() {
-  const [apiResponse, setApiResponse] = useState(null);
+  const [apiResponse, setApiResponse] = useState([{}]);
   const [error, setError] = useState(null);
   const [request, setRequest] = useState({
     loanAmount: "",
     interestRate: "",
     loanTenureInMonths: "",
   });
+  const [showGrid, setShowGrid] = useState(false);
+  const [colDefs, setColDefs] = useState([
+    { field: "principal" },
+    { field: "interest" },
+    { field: "totalPayment" },
+    { field: "balance" },
+  ]);
 
   function handleLoanAmountChange(e) {
     setRequest({
@@ -40,16 +88,14 @@ export default function CalculateEMI() {
       // Replace with your .NET API endpoint
       const response = await axios.get(
         baseQuery +
-          "/api/Calculate/CalculateEMIs?loanAmount=" +
+          "/Calculate/CalculateEMIs?loanAmount=" +
           request.loanAmount +
           "&interestRate=" +
           request.interestRate +
           "&loanTenureInMonths=" +
           request.loanTenureInMonths
       );
-      setApiResponse(response.data);
-      console.log(response.data);
-      console.log("Request", request);
+      setApiResponse(response.data.Result);
       setError(null); // Clear any previous errors
     } catch (err) {
       setError(err.message);
@@ -59,96 +105,53 @@ export default function CalculateEMI() {
 
   return (
     <>
-      <h1>Loan Management System</h1>
-      <Box sx={{ display: "flex", justifyContent: "center" }}>
-        <Box
-          border={1}
-          sx={{ paddingRight: 5, paddingLeft: 5, paddingBottom: 5 }}
-        >
-          <h2>Calculate EMI</h2>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              padding: 10,
-            }}
+      <Box>
+        <h1>Loan Management System</h1>
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
+          <Box
+            border={1}
+            sx={{ paddingRight: 5, paddingLeft: 5, paddingBottom: 5 }}
           >
-            <Typography
-              display="inline"
-              fontSize={20}
-              style={{ padding: "10px" }}
-            >
-              Loan Amount
-            </Typography>
-            <TextField
-              id="loanAmount"
-              variant="outlined"
-              style={{ outlineColor: "white" }}
-              size="small"
-              value={request.loanAmount}
-              onChange={handleLoanAmountChange}
-              type="number"
-            />
-            {Number(request.loanAmount) < 0 ||
-            request.loanAmount.length <= 0 ? (
-              <ErrorOutlineRoundedIcon />
-            ) : null}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              padding: 10,
-            }}
-          >
-            <Typography
-              display="inline"
-              fontSize={20}
-              style={{ padding: "10px" }}
-            >
-              Interest Rate
-            </Typography>
-            <TextField
-              id="interestRate"
-              variant="outlined"
-              style={{ outlineColor: "white" }}
-              size="small"
-              value={request.interestRate}
-              onChange={handleInterestRateChange}
-              type="number"
-            />
-            {Number(request.interestRate) < 0 ||
-            request.interestRate.length <= 0 ? (
-              <ErrorOutlineRoundedIcon />
-            ) : null}
-          </div>
-          <div style={{ display: "flex", padding: 10 }}>
-            <Typography
-              display="inline"
-              fontSize={20}
-              style={{ padding: "10px" }}
-            >
-              Loan Tenure in Months
-            </Typography>
-            <TextField
-              id="loanTenureInMonths"
-              variant="outlined"
-              style={{ outlineColor: "white" }}
-              size="small"
-              value={request.loanTenureInMonths}
-              onChange={handleLoanTenureInMonthsChange}
-              type="number"
-            />
-            {Number(request.loanTenureInMonths) < 0 ||
-            request.loanTenureInMonths.length <= 0 ? (
-              <ErrorOutlineRoundedIcon />
-            ) : null}
-          </div>
+            <h2>Calculate EMI</h2>
 
-          <Button variant="contained" onClick={displayEMI}>
-            test
-          </Button>
+            <CreateTextField
+              textFieldName="Loan Amount"
+              requestFieldName={request.loanAmount}
+              handleFunc={handleLoanAmountChange}
+              textStyle="space-between"
+            />
+            <CreateTextField
+              textFieldName="Interest Rate"
+              requestFieldName={request.interestRate}
+              handleFunc={handleInterestRateChange}
+              textStyle="space-between"
+            />
+            <CreateTextField
+              textFieldName="Loan Tenure in Months"
+              requestFieldName={request.loanTenureInMonths}
+              handleFunc={handleLoanTenureInMonthsChange}
+            />
+
+            <Button
+              variant="contained"
+              onClick={() => {
+                setShowGrid(true);
+                displayEMI();
+              }}
+            >
+              Calculate
+            </Button>
+          </Box>
         </Box>
+        {showGrid && (
+          <div className="ag-theme-quartz" style={{ height: 400, width: 600 }}>
+            <AgGridReact
+              pagination
+              rowData={apiResponse} // Your data
+              columnDefs={colDefs} // Your column definitions
+            />
+          </div>
+        )}
       </Box>
     </>
   );
