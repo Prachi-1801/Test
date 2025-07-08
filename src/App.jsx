@@ -1,5 +1,5 @@
 // import CalculateEMI from "./CalculateEMI";
-import ShowForm from "./BasicCrud";
+import ShowForm from "./BasicCrudWithTable";
 
 function App() {
   // return <CalculateEMI />;

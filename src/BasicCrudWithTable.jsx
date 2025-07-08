@@ -123,6 +123,7 @@ export default function ShowForm() {
   const viewAll = async () => {
     try {
       // Replace with your .NET API endpoint
+      console.log("test view");
       const response = await axios.get(baseQuery + "/Customer/GetCustomers");
       console.log(response);
       setApiResponse(response.data.Result);
@@ -201,6 +202,16 @@ export default function ShowForm() {
       <Button
         variant="outlined"
         onClick={() => {
+          document.getElementById("#customerTable");
+        }}
+        style={{ margin: "5px" }}
+      >
+        Add
+      </Button>
+
+      <Button
+        variant="outlined"
+        onClick={() => {
           if (!showGrid) {
             setShowGrid(true);
             viewAll();
@@ -211,77 +222,39 @@ export default function ShowForm() {
       >
         {!showGrid ? "View" : "Hide"} All
       </Button>
-      <Box sx={{ display: "flex", justifyContent: "center", margin: 5 }}>
-        <Box
-          border={1}
-          sx={{
-            paddingRight: 5,
-            paddingLeft: 5,
-            paddingBottom: 5,
-          }}
-        >
-          <h2>Add Customer</h2>
-          <CreateTextField
-            textFieldName={"Name"}
-            textStyle={"space-between"}
-            handleFunc={handleNameChange}
-            textValue={request.name}
-          />
-          <CreateTextField
-            textFieldName={"Email"}
-            type={"email"}
-            textStyle={"space-between"}
-            handleFunc={handleEmailChange}
-            textValue={request.email}
-          />
-          <CreateTextField
-            textFieldName={"Password"}
-            type={"password"}
-            textStyle={"space-between"}
-            handleFunc={handlePasswordChange}
-            textValue={request.password}
-          />
-          <CreateTextField
-            textFieldName={"Address"}
-            textStyle={"space-between"}
-            handleFunc={handleAddressChange}
-            textValue={request.address}
-          />
-          <CreateTextField
-            textFieldName={"Contact"}
-            textStyle={"space-between"}
-            type={"number"}
-            handleFunc={handleContactChange}
-            textValue={request.contact}
-          />
-          <CreateTextField
-            textFieldName={"BirthDate"}
-            type={"date"}
-            handleFunc={handleDobChange}
-            textValue={request.dob}
-          />
-
-          <center>
-            <Button
-              variant="contained"
-              onClick={() => {
-                checkValidation();
-                addCustomer();
-              }}
-            >
-              Submit
-            </Button>
-          </center>
-        </Box>
-      </Box>
       {showGrid && (
         <Box sx={{ display: "flex", justifyContent: "center", margin: 5 }}>
-          <div className="ag-theme-quartz" style={{ height: 400, width: 1617 }}>
-            <AgGridReact
-              pagination
-              rowData={apiResponse} // Your data
-              columnDefs={colDefs}
-            />
+          <div
+            className="ag-theme-quartz"
+            style={{ height: 400, width: "inherit" }}
+          >
+            <table id="customerTable" style={{ border: "1px solid black" }}>
+              <thead>
+                <tr>
+                  {colDefs.map((item) => (
+                    <th key={item.field}>{item.headerName}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {apiResponse.map((item) => (
+                  <tr>
+                    <td>{item["name"]}</td>
+                    <td>{item["email"]}</td>
+                    <td>{item["address"]}</td>
+                    <td>{item["contact"]}</td>
+                    <td>{item["birthDate"]}</td>
+                    <td>{item["nominee"]}</td>
+                    <td>
+                      <button>Edit</button>
+                    </td>
+                    <td>
+                      <button key={item[0]}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </Box>
       )}
