@@ -55,12 +55,12 @@ export default function CalculateEMI() {
     loanTenureInMonths: "",
   });
   const [showGrid, setShowGrid] = useState(false);
-  const [colDefs, setColDefs] = useState([
+  const colDefs = [
     { field: "principal" },
     { field: "interest" },
     { field: "totalPayment" },
     { field: "balance" },
-  ]);
+  ];
 
   function handleLoanAmountChange(e) {
     setRequest({
@@ -99,6 +99,7 @@ export default function CalculateEMI() {
       setError(null); // Clear any previous errors
     } catch (err) {
       setError(err.message);
+      console.log(error);
       setApiResponse(null); // Clear any previous data
     }
   };

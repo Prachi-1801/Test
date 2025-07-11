@@ -1,11 +1,9 @@
-import { Button, TextField, Box, Typography, colors } from "@mui/material";
-import { useMemo, useState } from "react";
+import { Button, TextField, Box, Typography } from "@mui/material";
+import { useState } from "react";
 import { AgGridReact } from "ag-grid-react";
-import axios from "axios";
 import "./App.css";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
-
-var baseQuery = import.meta.env.VITE_API;
+import { addCustomer, viewAll, deleteCustomer } from "./axiosAPI.jsx";
 
 function CreateTextField({
   textFieldName,
@@ -45,21 +43,19 @@ function CreateTextField({
 }
 
 const DeleteButtonCellRenderer = (props) => {
-  const { value, customFunc: deleteCustomer } = props;
+  const { customFunc: deleteCustomer, setApiResponse, setError } = props;
   const handleButtonClick = () => {
     // Access the row data via props.data
-    console.log("Id: ", props.data.id);
-    deleteCustomer(props.data.id);
+    deleteCustomer(props.data.id, setApiResponse, setError);
   };
 
   return <button onClick={handleButtonClick}>Delete</button>;
 };
 
 const EditCellRenderer = (props) => {
-  const { value, customFunc: editCustomer } = props;
+  const { customFunc: editCustomer } = props;
   const handleButtonClick = () => {
     // Access the row data via props.data
-    console.log("Id: ", props.data.id);
     editCustomer({
       id: props.data.id,
       name: props.data.name,
@@ -74,15 +70,6 @@ const EditCellRenderer = (props) => {
 };
 
 export default function ShowForm() {
-  const deleteCustomer = async (customerId) => {
-    try {
-      await axios.delete(baseQuery + "/Customer/DeleteCustomer/" + customerId);
-      viewAll();
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
   const [request, setRequest] = useState({
     id: 0,
     name: "",
@@ -116,41 +103,11 @@ export default function ShowForm() {
       cellRenderer: DeleteButtonCellRenderer,
       cellRendererParams: {
         customFunc: deleteCustomer,
+        setApiResponse,
+        setError,
       },
     },
   ];
-
-  const viewAll = async () => {
-    try {
-      // Replace with your .NET API endpoint
-      const response = await axios.get(baseQuery + "/Customer/GetCustomers");
-      console.log(response);
-      setApiResponse(response.data.Result);
-      setError(null); // Clear any previous errors
-    } catch (err) {
-      setError(err.message);
-      console.log(err.message);
-      setApiResponse(null); // Clear any previous data
-    }
-  };
-
-  const addCustomer = async () => {
-    try {
-      await axios.post(baseQuery + "/Customer/Register", {
-        id: request.id,
-        name: request.name,
-        email: request.email,
-        password: request.password,
-        address: request.address,
-        contact: request.contact,
-        birthDate: new Date(request.dob),
-        nominee: null,
-      });
-      viewAll();
-    } catch (error) {
-      console.log(error);
-    }
-  };
 
   function handleNameChange(e) {
     setRequest({
@@ -203,7 +160,8 @@ export default function ShowForm() {
         onClick={() => {
           if (!showGrid) {
             setShowGrid(true);
-            viewAll();
+            viewAll(setApiResponse, setError);
+            console.log(error);
           } else {
             setShowGrid(false);
           }
@@ -266,7 +224,7 @@ export default function ShowForm() {
               variant="contained"
               onClick={() => {
                 checkValidation();
-                addCustomer();
+                addCustomer(request, setApiResponse, setError);
               }}
             >
               Submit

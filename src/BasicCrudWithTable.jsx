@@ -1,54 +1,12 @@
-import { Button, TextField, Box, Typography, colors } from "@mui/material";
-import { useMemo, useState } from "react";
-import { AgGridReact } from "ag-grid-react";
-import axios from "axios";
+import { Button, TextField, Box, Typography } from "@mui/material";
+import { useState } from "react";
 import "./App.css";
-import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
-
-var baseQuery = import.meta.env.VITE_API;
-
-function CreateTextField({
-  textFieldName,
-  type = "",
-  textStyle = "",
-  handleFunc,
-  textValue,
-}) {
-  return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          padding: 10,
-          flexDirection: "row",
-          justifyContent: textStyle,
-        }}
-      >
-        <Typography display="inline" fontSize={20} style={{ padding: "10px" }}>
-          {textFieldName}
-        </Typography>
-        <div style={{ display: "flex", flexDirection: "row" }}>
-          <TextField
-            id={textFieldName}
-            onChange={handleFunc}
-            variant="outlined"
-            style={{ outlineColor: "white" }}
-            size="small"
-            type={type}
-            value={textValue}
-          />
-          <ErrorOutlineRoundedIcon color="error" />
-        </div>
-      </div>
-    </>
-  );
-}
+import { viewAll } from "./axiosAPI.jsx";
 
 const DeleteButtonCellRenderer = (props) => {
-  const { value, customFunc: deleteCustomer } = props;
+  const { customFunc: deleteCustomer } = props;
   const handleButtonClick = () => {
     // Access the row data via props.data
-    console.log("Id: ", props.data.id);
     deleteCustomer(props.data.id);
   };
 
@@ -56,10 +14,10 @@ const DeleteButtonCellRenderer = (props) => {
 };
 
 const EditCellRenderer = (props) => {
-  const { value, customFunc: editCustomer } = props;
+  console.log("Edit");
+  const { customFunc: editCustomer } = props;
   const handleButtonClick = () => {
     // Access the row data via props.data
-    console.log("Id: ", props.data.id);
     editCustomer({
       id: props.data.id,
       name: props.data.name,
@@ -74,27 +32,19 @@ const EditCellRenderer = (props) => {
 };
 
 export default function ShowForm() {
-  const deleteCustomer = async (customerId) => {
-    try {
-      await axios.delete(baseQuery + "/Customer/DeleteCustomer/" + customerId);
-      viewAll();
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const [request, setRequest] = useState({
-    id: 0,
-    name: "",
-    email: "",
-    password: "",
-    address: "",
-    contact: "",
-    dob: "",
-  });
+  //   const [request, setRequest] = useState({
+  //     id: 0,
+  //     name: "",
+  //     email: "",
+  //     password: "",
+  //     address: "",
+  //     contact: "",
+  //     dob: "",
+  //   });
   const [showGrid, setShowGrid] = useState(false);
   const [apiResponse, setApiResponse] = useState([{}]);
   const [error, setError] = useState(null);
+  const [isNewRow, setIsNewRow] = useState(false);
   const colDefs = [
     { field: "name", headerName: "Name" },
     { field: "email", headerName: "Email" },
@@ -105,104 +55,49 @@ export default function ShowForm() {
     {
       field: "edit",
       headerName: "Edit",
-      cellRenderer: EditCellRenderer,
-      cellRendererParams: {
-        customFunc: setRequest,
-      },
     },
     {
       field: "delete",
       headerName: "Delete",
-      cellRenderer: DeleteButtonCellRenderer,
-      cellRendererParams: {
-        customFunc: deleteCustomer,
-      },
     },
   ];
 
-  const viewAll = async () => {
-    try {
-      // Replace with your .NET API endpoint
-      console.log("test view");
-      const response = await axios.get(baseQuery + "/Customer/GetCustomers");
-      console.log(response);
-      setApiResponse(response.data.Result);
-      setError(null); // Clear any previous errors
-    } catch (err) {
-      setError(err.message);
-      console.log(err.message);
-      setApiResponse(null); // Clear any previous data
-    }
-  };
-
-  const addCustomer = async () => {
-    try {
-      await axios.post(baseQuery + "/Customer/Register", {
-        id: request.id,
-        name: request.name,
-        email: request.email,
-        password: request.password,
-        address: request.address,
-        contact: request.contact,
-        birthDate: new Date(request.dob),
-        nominee: null,
-      });
-      viewAll();
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  function handleNameChange(e) {
-    setRequest({
-      ...request,
-      name: e.target.value,
-    });
+  function addRowInTable() {
+    setIsNewRow(true);
+    setApiResponse([
+      ...apiResponse,
+      {
+        index: apiResponse.length + 1,
+        id: "",
+        name: "",
+        contact: "",
+        birthDate: "",
+        nominee: "",
+        email: "",
+        address: "",
+      },
+    ]);
   }
 
-  function handleEmailChange(e) {
-    setRequest({
-      ...request,
-      email: e.target.value,
+  function handleNameChange(e, index) {
+    console.log(
+      "Index",
+      index,
+      e.target.value,
+      apiResponse.find((element) => element["index"] == index)
+    );
+    setApiResponse({
+      ...apiResponse,
+      //   apiResponse.name:e.target.value
     });
   }
-
-  function handlePasswordChange(e) {
-    setRequest({
-      ...request,
-      password: e.target.value,
-    });
-  }
-
-  function handleAddressChange(e) {
-    setRequest({
-      ...request,
-      address: e.target.value,
-    });
-  }
-
-  function handleContactChange(e) {
-    setRequest({
-      ...request,
-      contact: e.target.value,
-    });
-  }
-
-  function handleDobChange(e) {
-    setRequest({
-      ...request,
-      dob: e.target.value,
-    });
-  }
-
-  function checkValidation() {}
 
   return (
     <>
       <Button
         variant="outlined"
         onClick={() => {
-          document.getElementById("#customerTable");
+          addRowInTable();
         }}
         style={{ margin: "5px" }}
       >
@@ -214,7 +109,8 @@ export default function ShowForm() {
         onClick={() => {
           if (!showGrid) {
             setShowGrid(true);
-            viewAll();
+            viewAll(setApiResponse, setError);
+            console.log(error);
           } else {
             setShowGrid(false);
           }
@@ -237,19 +133,65 @@ export default function ShowForm() {
                 </tr>
               </thead>
               <tbody>
-                {apiResponse.map((item) => (
+                {apiResponse.map((item, index) => (
                   <tr>
-                    <td>{item["name"]}</td>
-                    <td>{item["email"]}</td>
-                    <td>{item["address"]}</td>
-                    <td>{item["contact"]}</td>
-                    <td>{item["birthDate"]}</td>
-                    <td>{item["nominee"]}</td>
                     <td>
-                      <button>Edit</button>
+                      {isNewRow && item["name"] == "" ? (
+                        <input
+                          onChange={(e) => {
+                            handleNameChange(e, index);
+                          }}
+                        />
+                      ) : (
+                        item["name"]
+                      )}
                     </td>
                     <td>
-                      <button key={item[0]}>Delete</button>
+                      {isNewRow && item["email"] == "" ? (
+                        <input />
+                      ) : (
+                        item["email"]
+                      )}
+                    </td>
+                    <td>
+                      {isNewRow && item["address"] == "" ? (
+                        <input />
+                      ) : (
+                        item["address"]
+                      )}
+                    </td>
+                    <td>
+                      {isNewRow && item["contact"] == "" ? (
+                        <input />
+                      ) : (
+                        item["contact"]
+                      )}
+                    </td>
+                    <td>
+                      {isNewRow && item["birthDate"] == "" ? (
+                        <input />
+                      ) : (
+                        item["birthDate"]
+                      )}
+                    </td>
+                    <td>
+                      {isNewRow && item["nominee"] == "" ? (
+                        <input />
+                      ) : (
+                        item["nominee"]
+                      )}
+                    </td>
+                    <td>
+                      <button>
+                        {isNewRow && item["id"] == "" ? "Save" : "Edit"}
+                      </button>
+                    </td>
+                    <td>
+                      {isNewRow ? (
+                        <button>Cancel</button>
+                      ) : (
+                        <button>Delete</button>
+                      )}
                     </td>
                   </tr>
                 ))}
