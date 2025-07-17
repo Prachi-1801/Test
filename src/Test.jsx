@@ -17,7 +17,7 @@ export default function ShowForm() {
   const [apiResponse, setApiResponse] = useState([{}]);
   const [error, setError] = useState(null);
   const [isNewRow, setIsNewRow] = useState(false);
-  // const [isUpdated, setIsUpdated] = useState(false);
+  const [isUpdated, setIsUpdated] = useState({ index: "" });
 
   const colDefs = [
     { field: "name", headerName: "Name" },
@@ -42,7 +42,7 @@ export default function ShowForm() {
       ...apiResponse,
       {
         index: "New_" + (apiResponse.length + 1),
-        id: "",
+        id: 0,
         name: "",
         contact: "",
         birthDate: "",
@@ -56,11 +56,10 @@ export default function ShowForm() {
   }
 
   function handleNameChange(e, index) {
-    console.log(event.target.innerHTML, index);
     setApiResponse((apiResponse) =>
       apiResponse.map((customer) => {
         if (customer.index === index) {
-          return { ...customer, name: e.target.innerHTML };
+          return { ...customer, name: e.target.value };
         } else {
           return customer;
         }
@@ -130,17 +129,18 @@ export default function ShowForm() {
 
   function saveCustomer(index) {
     var x = apiResponse.find((item) => item.index === index);
-    console.log(x);
     request = {
       ...request,
+      id: x.id,
       name: x.name,
       email: x.email,
       address: x.address,
       contact: x.contact,
       birthDate: x.birthDate,
     };
-    console.log("BirthDate", request.birthDate);
     addCustomer(request, setApiResponse, setError);
+    setIsUpdated({ index: "" });
+    setIsNewRow(false);
   }
 
   return (
@@ -151,6 +151,7 @@ export default function ShowForm() {
           addRowInTable();
         }}
         style={{ margin: "5px" }}
+        disabled={isUpdated.index.length > 0 || isNewRow}
       >
         Add
       </Button>
@@ -187,9 +188,11 @@ export default function ShowForm() {
                 {apiResponse.map((item) => (
                   <tr>
                     <td>
-                      {isNewRow &&
-                      item["index"].toString().startsWith("New_") ? (
+                      {(isNewRow &&
+                        item["index"].toString().startsWith("New_")) ||
+                      isUpdated.index == item["index"] ? (
                         <input
+                          value={item["name"]}
                           onChange={(e) => {
                             handleNameChange(e, item["index"]);
                           }}
@@ -259,16 +262,25 @@ export default function ShowForm() {
                       )}
                     </td>
                     <td>
-                      {isNewRow && item["id"] == "" ? (
+                      {(isNewRow && item["id"] == "") ||
+                      isUpdated.index == item["index"] ? (
                         <button onClick={() => saveCustomer(item["index"])}>
                           Save
                         </button>
                       ) : (
-                        <button>Edit</button>
+                        <button
+                          onClick={() => {
+                            setIsUpdated({ index: item["index"], edit: true });
+                            console.log(isUpdated["index"]);
+                          }}
+                        >
+                          Edit
+                        </button>
                       )}
                     </td>
                     <td>
-                      {isNewRow && item["id"] == "" ? (
+                      {(isNewRow && item["id"] == "") ||
+                      isUpdated.index == item["index"] ? (
                         <button>Cancel</button>
                       ) : (
                         <button
@@ -279,23 +291,6 @@ export default function ShowForm() {
                           Delete
                         </button>
                       )}
-                    </td>
-                    <td
-                      // value={item["name"]}
-                      onInput={(e) => {
-                        handleNameChange(e, item["index"]);
-                      }}
-                      contentEditable
-                    >
-                      {item["name"]}
-                      {/* <input
-                        style={{ content: "none" }}
-                        value={item["name"]}
-                        onChange={(e) => {
-                          handleNameChange(e, item["index"]);
-                        }}
-                        disabled
-                      /> */}
                     </td>
                   </tr>
                 ))}

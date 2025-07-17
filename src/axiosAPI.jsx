@@ -14,7 +14,6 @@ export const viewAll = async (setApiResponse, setError) => {
   try {
     // Replace with your .NET API endpoint
     const response = await axios.get(baseQuery + "/Customer/GetCustomers");
-    console.log(response);
     response.data.Result.forEach((element, index) => {
       element["index"] = index + 1;
     });
@@ -28,6 +27,7 @@ export const viewAll = async (setApiResponse, setError) => {
 };
 
 export const addCustomer = async (request, setApiResponse, setError) => {
+  console.log(request);
   try {
     await axios.post(baseQuery + "/Customer/Register", {
       id: request.id,
@@ -36,7 +36,7 @@ export const addCustomer = async (request, setApiResponse, setError) => {
       password: request.password,
       address: request.address,
       contact: request.contact,
-      birthDate: new Date(request.dob),
+      birthDate: new Date(request.birthDate),
       nominee: null,
     });
     viewAll(setApiResponse, setError);
