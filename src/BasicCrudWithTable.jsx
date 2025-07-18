@@ -12,12 +12,13 @@ export default function ShowForm() {
     address: "",
     contact: "",
     birthDate: "",
+    nominee: "",
   };
   const [showGrid, setShowGrid] = useState(false);
   const [apiResponse, setApiResponse] = useState([{}]);
   const [error, setError] = useState(null);
   const [isNewRow, setIsNewRow] = useState(false);
-  // const [isUpdated, setIsUpdated] = useState(false);
+  const [isUpdated, setIsUpdated] = useState({ index: "" });
 
   const colDefs = [
     { field: "name", headerName: "Name" },
@@ -42,7 +43,7 @@ export default function ShowForm() {
       ...apiResponse,
       {
         index: "New_" + (apiResponse.length + 1),
-        id: "",
+        id: 0,
         name: "",
         contact: "",
         birthDate: "",
@@ -56,11 +57,10 @@ export default function ShowForm() {
   }
 
   function handleNameChange(e, index) {
-    console.log(event.target.innerHTML, index);
     setApiResponse((apiResponse) =>
       apiResponse.map((customer) => {
         if (customer.index === index) {
-          return { ...customer, name: e.target.innerHTML };
+          return { ...customer, name: e.target.value };
         } else {
           return customer;
         }
@@ -130,17 +130,19 @@ export default function ShowForm() {
 
   function saveCustomer(index) {
     var x = apiResponse.find((item) => item.index === index);
-    console.log(x);
     request = {
       ...request,
+      id: x.id,
       name: x.name,
       email: x.email,
       address: x.address,
       contact: x.contact,
       birthDate: x.birthDate,
+      nominee: x.nominee,
     };
-    console.log("BirthDate", request.birthDate);
     addCustomer(request, setApiResponse, setError);
+    setIsUpdated({ index: "" });
+    setIsNewRow(false);
   }
 
   return (
@@ -151,6 +153,7 @@ export default function ShowForm() {
           addRowInTable();
         }}
         style={{ margin: "5px" }}
+        disabled={isUpdated.index != "" || isNewRow}
       >
         Add
       </Button>
@@ -187,9 +190,11 @@ export default function ShowForm() {
                 {apiResponse.map((item) => (
                   <tr>
                     <td>
-                      {isNewRow &&
-                      item["index"].toString().startsWith("New_") ? (
+                      {(isNewRow &&
+                        item["index"].toString().startsWith("New_")) ||
+                      isUpdated.index == item["index"] ? (
                         <input
+                          value={item["name"]}
                           onChange={(e) => {
                             handleNameChange(e, item["index"]);
                           }}
@@ -199,9 +204,11 @@ export default function ShowForm() {
                       )}
                     </td>
                     <td>
-                      {isNewRow &&
-                      item["index"].toString().startsWith("New_") ? (
+                      {(isNewRow &&
+                        item["index"].toString().startsWith("New_")) ||
+                      isUpdated.index == item["index"] ? (
                         <input
+                          value={item["email"]}
                           onChange={(e) => {
                             handleEmailChange(e, item["index"]);
                           }}
@@ -211,9 +218,11 @@ export default function ShowForm() {
                       )}
                     </td>
                     <td>
-                      {isNewRow &&
-                      item["index"].toString().startsWith("New_") ? (
+                      {(isNewRow &&
+                        item["index"].toString().startsWith("New_")) ||
+                      isUpdated.index == item["index"] ? (
                         <input
+                          value={item["address"]}
                           onChange={(e) => {
                             handleAddressChange(e, item["index"]);
                           }}
@@ -223,9 +232,11 @@ export default function ShowForm() {
                       )}
                     </td>
                     <td>
-                      {isNewRow &&
-                      item["index"].toString().startsWith("New_") ? (
+                      {(isNewRow &&
+                        item["index"].toString().startsWith("New_")) ||
+                      isUpdated.index == item["index"] ? (
                         <input
+                          value={item["contact"]}
                           onChange={(e) => {
                             handleContactChange(e, item["index"]);
                           }}
@@ -235,9 +246,11 @@ export default function ShowForm() {
                       )}
                     </td>
                     <td>
-                      {isNewRow &&
-                      item["index"].toString().startsWith("New_") ? (
+                      {(isNewRow &&
+                        item["index"].toString().startsWith("New_")) ||
+                      isUpdated.index == item["index"] ? (
                         <input
+                          value={item["birthDate"]}
                           onChange={(e) => {
                             handleBirthDateChange(e, item["index"]);
                           }}
@@ -247,9 +260,11 @@ export default function ShowForm() {
                       )}
                     </td>
                     <td>
-                      {isNewRow &&
-                      item["index"].toString().startsWith("New_") ? (
+                      {(isNewRow &&
+                        item["index"].toString().startsWith("New_")) ||
+                      isUpdated.index == item["index"] ? (
                         <input
+                          value={item["nominee"]}
                           onChange={(e) => {
                             handleNomineeChange(e, item["index"]);
                           }}
@@ -259,17 +274,39 @@ export default function ShowForm() {
                       )}
                     </td>
                     <td>
-                      {isNewRow && item["id"] == "" ? (
+                      {(isNewRow && item["id"] == "") ||
+                      isUpdated.index == item["index"] ? (
                         <button onClick={() => saveCustomer(item["index"])}>
                           Save
                         </button>
                       ) : (
-                        <button>Edit</button>
+                        <button
+                          onClick={() => {
+                            setIsUpdated({ index: item["index"] });
+                            console.log(isUpdated["index"]);
+                          }}
+                        >
+                          Edit
+                        </button>
                       )}
                     </td>
                     <td>
-                      {isNewRow && item["id"] == "" ? (
-                        <button>Cancel</button>
+                      {(isNewRow && item["id"] == "") ||
+                      isUpdated.index == item["index"] ? (
+                        <button
+                          onClick={() => {
+                            if (isNewRow)
+                              setApiResponse(
+                                apiResponse.filter(
+                                  (x) => x.index != item["index"]
+                                )
+                              );
+                            setIsNewRow(false);
+                            setIsUpdated({ index: "" });
+                          }}
+                        >
+                          Cancel
+                        </button>
                       ) : (
                         <button
                           onClick={() =>
@@ -279,23 +316,6 @@ export default function ShowForm() {
                           Delete
                         </button>
                       )}
-                    </td>
-                    <td
-                      // value={item["name"]}
-                      onInput={(e) => {
-                        handleNameChange(e, item["index"]);
-                      }}
-                      contentEditable
-                    >
-                      {item["name"]}
-                      {/* <input
-                        style={{ content: "none" }}
-                        value={item["name"]}
-                        onChange={(e) => {
-                          handleNameChange(e, item["index"]);
-                        }}
-                        disabled
-                      /> */}
                     </td>
                   </tr>
                 ))}
