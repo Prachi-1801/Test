@@ -1,5 +1,5 @@
 import { Button, TextField, Box, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import "./App.css";
 import { addCustomer, deleteCustomer, viewAll } from "./axiosAPI.jsx";
 
@@ -55,81 +55,9 @@ export default function ShowForm() {
     ]);
   }
 
-  function handleNameChange(e, index) {
-    setApiResponse((apiResponse) =>
-      apiResponse.map((customer) => {
-        if (customer.index === index) {
-          return { ...customer, name: e.target.value };
-        } else {
-          return customer;
-        }
-      })
-    );
-  }
-
-  function handleEmailChange(e, index) {
-    setApiResponse((apiResponse) =>
-      apiResponse.map((customer) => {
-        if (customer.index === index) {
-          return { ...customer, email: e.target.value };
-        } else {
-          return customer;
-        }
-      })
-    );
-  }
-
-  function handleAddressChange(e, index) {
-    setApiResponse((apiResponse) =>
-      apiResponse.map((customer) => {
-        if (customer.index === index) {
-          return { ...customer, address: e.target.value };
-        } else {
-          return customer;
-        }
-      })
-    );
-  }
-
-  function handleContactChange(e, index) {
-    setApiResponse((apiResponse) =>
-      apiResponse.map((customer) => {
-        if (customer.index === index) {
-          return { ...customer, contact: e.target.value };
-        } else {
-          return customer;
-        }
-      })
-    );
-  }
-
-  function handleBirthDateChange(e, index) {
-    setApiResponse((apiResponse) =>
-      apiResponse.map((customer) => {
-        if (customer.index === index) {
-          return { ...customer, birthDate: e.target.value };
-        } else {
-          return customer;
-        }
-      })
-    );
-  }
-
-  function handleNomineeChange(e, index) {
-    setApiResponse((apiResponse) =>
-      apiResponse.map((customer) => {
-        if (customer.index === index) {
-          return { ...customer, nominee: e.target.value };
-        } else {
-          return customer;
-        }
-      })
-    );
-  }
-
-  useEffect(() => {
-    return console.log("EFFECT: ", apiResponse);
-  }, [apiResponse]);
+  // useEffect(() => {
+  //   return console.log("EFFECT: ", apiResponse);
+  // }, [apiResponse]);
 
   async function saveCustomer(index) {
     var x = apiResponse.find((item) => item.index === index);
@@ -202,96 +130,26 @@ export default function ShowForm() {
               </thead>
               <tbody>
                 {apiResponse.map((item) => (
-                  <tr>
-                    {colDefs.map((col) => {
-                      //   console.log(item);
-                      return addTableData(
-                        isNewRow,
-                        item,
-                        isUpdated,
-                        col.field.toString(),
-                        setApiResponse
-                      );
-                    })}
-                    <td>
-                      {(isNewRow.find((x) => x.index == item["index"])
-                        ?.newRow &&
-                        item["id"] == "") ||
-                      isUpdated.find((x) => x.index == item["index"])?.edit ? (
-                        <button onClick={() => saveCustomer(item["index"])}>
-                          Save
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setIsUpdated([
-                              ...isUpdated,
-                              { index: item["index"], edit: true },
-                            ]);
-                          }}
-                        >
-                          Edit
-                        </button>
-                      )}
-                    </td>
-                    <td>
-                      {(isNewRow.find((x) => x.index == item["index"])
-                        ?.newRow &&
-                        item["id"] == "") ||
-                      isUpdated.find((x) => x.index == item["index"])?.edit ? (
-                        <button
-                          onClick={() => {
-                            if (
-                              isNewRow.find((x) => x.index == item["index"])
-                                ?.newRow
-                            )
-                              setApiResponse(
-                                apiResponse.filter(
-                                  (x) => x.index != item["index"]
-                                )
-                              );
-                            setIsNewRow((item) =>
-                              item.map((value) => {
-                                if (value.index === item["index"]) {
-                                  return { ...value, isNewRow: false };
-                                } else {
-                                  return item;
-                                }
-                              })
-                            );
-                            setIsUpdated((item) =>
-                              item.map((value) => {
-                                if (value.index === item["index"]) {
-                                  return { ...value, edit: false };
-                                } else {
-                                  return item;
-                                }
-                              })
-                            );
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      ) : (
-                        <button
-                          onClick={async () => {
-                            let statusCode = await deleteCustomer(
-                              item["id"]
-                            ).then((result) => {
-                              return result;
-                            });
-                            if (statusCode == 200) {
-                              setApiResponse(
-                                apiResponse.filter((x) => x.id != item["id"])
-                              );
-                            }
-                          }}
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </td>
-                  </tr>
+                  <>
+                    <tr>
+                      {colDefs.map((col) => {
+                        var keys = Object.keys(item);
+                        var isPartOfResponse = keys.includes(col.field);
+                        return addTableData(
+                          isNewRow,
+                          item,
+                          isUpdated,
+                          col.field.toString(),
+                          setApiResponse,
+                          apiResponse,
+                          setIsNewRow,
+                          setIsUpdated,
+                          isPartOfResponse,
+                          saveCustomer
+                        );
+                      })}
+                    </tr>
+                  </>
                 ))}
               </tbody>
             </table>
@@ -308,37 +166,101 @@ function addTableData(
   isUpdated,
   fieldName,
   setApiResponse,
+  apiResponse,
+  setIsNewRow,
+  setIsUpdated,
+  isPartOfResponse,
+  saveCustomer,
   type = ""
 ) {
-  console.log("FieldName", fieldName);
   return (
     <td>
-      {(isNewRow.find((x) => x.index == item["index"])?.newRow &&
-        item["index"].toString().startsWith("New_")) ||
-      isUpdated.find((x) => x.index == item["index"])?.edit ? (
-        <input
-          type={type != "" ? type : ""}
-          value={
-            type != "date"
-              ? item[fieldName]
-              : item[fieldName] != ""
-              ? new Date(item[fieldName]).toISOString().split("T")[0]
-              : ""
-          }
-          onChange={(e) => {
-            setApiResponse((apiResponse) =>
-              apiResponse.map((customer) => {
-                if (customer.index === item["index"]) {
-                  return { ...customer, fieldName: e.target.value };
-                } else {
-                  return customer;
-                }
-              })
-            );
+      {isPartOfResponse ? (
+        (isNewRow.find((x) => x.index == item["index"])?.newRow &&
+          item["index"].toString().startsWith("New_")) ||
+        isUpdated.find((x) => x.index == item["index"])?.edit ? (
+          <input
+            type={type != "" ? type : ""}
+            value={
+              type != "date"
+                ? item[fieldName]
+                : item[fieldName] != ""
+                ? new Date(item[fieldName]).toISOString().split("T")[0]
+                : ""
+            }
+            onChange={(e) => {
+              setApiResponse((apiResponse) =>
+                apiResponse.map((customer) => {
+                  if (customer.index === item["index"]) {
+                    return { ...customer, [fieldName]: e.target.value };
+                  } else {
+                    return customer;
+                  }
+                })
+              );
+            }}
+          />
+        ) : (
+          item[fieldName]
+        )
+      ) : (isNewRow.find((x) => x.index == item["index"])?.newRow &&
+          item["id"] == "") ||
+        isUpdated.find((x) => x.index == item["index"])?.edit ? (
+        <button
+          onClick={() => {
+            if (fieldName == "edit") {
+              saveCustomer(item["index"]);
+            } else {
+              if (isNewRow.find((x) => x.index == item["index"])?.newRow) {
+                setApiResponse(
+                  apiResponse.filter((x) => x.index != item["index"])
+                );
+              }
+              setIsNewRow((item) =>
+                item.map((value) => {
+                  if (value.index === item["index"]) {
+                    return { ...value, isNewRow: false };
+                  } else {
+                    return item;
+                  }
+                })
+              );
+              setIsUpdated((item) =>
+                item.map((value) => {
+                  if (value.index === item["index"]) {
+                    return { ...value, edit: false };
+                  } else {
+                    return item;
+                  }
+                })
+              );
+            }
           }}
-        />
+        >
+          {fieldName == "edit" ? "Save" : "Cancel"}
+        </button>
       ) : (
-        item[fieldName]
+        <button
+          onClick={async () => {
+            if (fieldName == "edit") {
+              setIsUpdated([
+                ...isUpdated,
+                { index: item["index"], edit: true },
+              ]);
+            } else {
+              let statusCode = await deleteCustomer(item["id"]).then(
+                (result) => {
+                  return result;
+                }
+              );
+              if (statusCode == 200) {
+                setApiResponse(apiResponse.filter((x) => x.id != item["id"]));
+              }
+            }
+          }}
+        >
+          {fieldName == "edit" ? "Edit" : "Delete"}
+        </button>
       )}
     </td>
   );
