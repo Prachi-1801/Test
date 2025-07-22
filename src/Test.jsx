@@ -14,8 +14,79 @@ export default function ShowForm() {
     birthDate: "",
     nominee: "",
   };
+
+  const EditCellRenderer = (item) => {
+    if (
+      (isNewRow.find((x) => x.index == item["index"])?.newRow &&
+        item["id"] == "") ||
+      isUpdated.find((x) => x.index == item["index"])?.edit
+    )
+      return <button onClick={() => saveCustomer(item["index"])}>Save</button>;
+    return (
+      <button
+        onClick={() => {
+          setIsUpdated([...isUpdated, { index: item["index"], edit: true }]);
+        }}
+      >
+        Edit
+      </button>
+    );
+  };
+
+  const DeleteCellRenderer = (item) => {
+    if (
+      (isNewRow.find((x) => x.index == item["index"])?.newRow &&
+        item["id"] == "") ||
+      isUpdated.find((x) => x.index == item["index"])?.edit
+    )
+      return (
+        <button
+          onClick={() => {
+            if (isNewRow.find((x) => x.index == item["index"])?.newRow)
+              setApiResponse(
+                apiResponse.filter((x) => x.index != item["index"])
+              );
+            setIsNewRow((item) =>
+              item.map((value) => {
+                if (value.index === item["index"]) {
+                  return { ...value, isNewRow: false };
+                } else {
+                  return item;
+                }
+              })
+            );
+            setIsUpdated((item) =>
+              item.map((value) => {
+                if (value.index === item["index"]) {
+                  return { ...value, edit: false };
+                } else {
+                  return item;
+                }
+              })
+            );
+          }}
+        >
+          Cancel
+        </button>
+      );
+    return (
+      <button
+        onClick={async () => {
+          let statusCode = await deleteCustomer(item["id"]).then((result) => {
+            return result;
+          });
+          if (statusCode == 200) {
+            setApiResponse(apiResponse.filter((x) => x.id != item["id"]));
+          }
+        }}
+      >
+        Delete
+      </button>
+    );
+  };
+
   const [showGrid, setShowGrid] = useState(false);
-  const [apiResponse, setApiResponse] = useState([{}]);
+  const [apiResponse, setApiResponse] = useState([]);
   const [error, setError] = useState(null);
   const [isNewRow, setIsNewRow] = useState([]);
   const [isUpdated, setIsUpdated] = useState([]);
@@ -30,10 +101,15 @@ export default function ShowForm() {
     {
       field: "edit",
       headerName: "Edit",
+      cellRenderer: EditCellRenderer,
+      // cellRendererParams: {
+      //   customFunc: setRequest,
+      // },
     },
     {
       field: "delete",
       headerName: "Delete",
+      cellRenderer: DeleteCellRenderer,
     },
   ];
 
@@ -55,6 +131,36 @@ export default function ShowForm() {
     ]);
   }
 
+  function addTableData(item, column) {
+    let fieldName = column.field;
+    return (
+      <td>
+        {"cellRenderer" in column ? (
+          column.cellRenderer(item)
+        ) : (isNewRow.find((x) => x.index == item["index"])?.newRow &&
+            item["index"].toString().startsWith("New_")) ||
+          isUpdated.find((x) => x.index == item["index"])?.edit ? (
+          <input
+            value={item[fieldName]}
+            onChange={(e) => {
+              setApiResponse((apiResponse) =>
+                apiResponse.map((customer) => {
+                  if (customer.index === item["index"]) {
+                    return { ...customer, [fieldName]: e.target.value };
+                  } else {
+                    return customer;
+                  }
+                })
+              );
+            }}
+          />
+        ) : (
+          item[fieldName]
+        )}
+      </td>
+    );
+  }
+
   // useEffect(() => {
   //   return console.log("EFFECT: ", apiResponse);
   // }, [apiResponse]);
@@ -71,9 +177,7 @@ export default function ShowForm() {
       birthDate: x.birthDate,
       nominee: x.nominee,
     };
-    let id = await addCustomer(request).then((result) => {
-      return result;
-    });
+    let id = await addCustomer(request);
     setApiResponse((apiResponse) =>
       apiResponse.map((customer) => {
         if (customer.index === index) {
@@ -85,9 +189,8 @@ export default function ShowForm() {
     );
 
     setIsUpdated(isUpdated.filter((x) => x.index != index));
-    setIsNewRow(() => isNewRow.filter((x) => x.index != index));
+    setIsNewRow(isNewRow.filter((x) => x.index != index));
   }
-
   return (
     <>
       <Button
@@ -133,20 +236,7 @@ export default function ShowForm() {
                   <>
                     <tr>
                       {colDefs.map((col) => {
-                        var keys = Object.keys(item);
-                        var isPartOfResponse = keys.includes(col.field);
-                        return addTableData(
-                          isNewRow,
-                          item,
-                          isUpdated,
-                          col.field.toString(),
-                          setApiResponse,
-                          apiResponse,
-                          setIsNewRow,
-                          setIsUpdated,
-                          isPartOfResponse,
-                          saveCustomer
-                        );
+                        return addTableData(item, col);
                       })}
                     </tr>
                   </>
@@ -157,111 +247,5 @@ export default function ShowForm() {
         </Box>
       )}
     </>
-  );
-}
-
-function addTableData(
-  isNewRow,
-  item,
-  isUpdated,
-  fieldName,
-  setApiResponse,
-  apiResponse,
-  setIsNewRow,
-  setIsUpdated,
-  isPartOfResponse,
-  saveCustomer,
-  type = ""
-) {
-  return (
-    <td>
-      {isPartOfResponse ? (
-        (isNewRow.find((x) => x.index == item["index"])?.newRow &&
-          item["index"].toString().startsWith("New_")) ||
-        isUpdated.find((x) => x.index == item["index"])?.edit ? (
-          <input
-            type={type != "" ? type : ""}
-            value={
-              type != "date"
-                ? item[fieldName]
-                : item[fieldName] != ""
-                ? new Date(item[fieldName]).toISOString().split("T")[0]
-                : ""
-            }
-            onChange={(e) => {
-              setApiResponse((apiResponse) =>
-                apiResponse.map((customer) => {
-                  if (customer.index === item["index"]) {
-                    return { ...customer, [fieldName]: e.target.value };
-                  } else {
-                    return customer;
-                  }
-                })
-              );
-            }}
-          />
-        ) : (
-          item[fieldName]
-        )
-      ) : (isNewRow.find((x) => x.index == item["index"])?.newRow &&
-          item["id"] == "") ||
-        isUpdated.find((x) => x.index == item["index"])?.edit ? (
-        <button
-          onClick={() => {
-            if (fieldName == "edit") {
-              saveCustomer(item["index"]);
-            } else {
-              if (isNewRow.find((x) => x.index == item["index"])?.newRow) {
-                setApiResponse(
-                  apiResponse.filter((x) => x.index != item["index"])
-                );
-              }
-              setIsNewRow((item) =>
-                item.map((value) => {
-                  if (value.index === item["index"]) {
-                    return { ...value, isNewRow: false };
-                  } else {
-                    return item;
-                  }
-                })
-              );
-              setIsUpdated((item) =>
-                item.map((value) => {
-                  if (value.index === item["index"]) {
-                    return { ...value, edit: false };
-                  } else {
-                    return item;
-                  }
-                })
-              );
-            }
-          }}
-        >
-          {fieldName == "edit" ? "Save" : "Cancel"}
-        </button>
-      ) : (
-        <button
-          onClick={async () => {
-            if (fieldName == "edit") {
-              setIsUpdated([
-                ...isUpdated,
-                { index: item["index"], edit: true },
-              ]);
-            } else {
-              let statusCode = await deleteCustomer(item["id"]).then(
-                (result) => {
-                  return result;
-                }
-              );
-              if (statusCode == 200) {
-                setApiResponse(apiResponse.filter((x) => x.id != item["id"]));
-              }
-            }
-          }}
-        >
-          {fieldName == "edit" ? "Edit" : "Delete"}
-        </button>
-      )}
-    </td>
   );
 }
