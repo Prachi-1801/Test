@@ -1,31 +1,32 @@
-import { Button, TextField, Box, Typography } from "@mui/material";
-import { useState } from "react";
+import { Button, Box } from "@mui/material";
+import { useEffect, useState } from "react";
 import "./App.css";
 import { addCustomer, deleteCustomer, viewAll } from "./axiosAPI.jsx";
+import { ToastContainer, toast } from "react-toastify";
 
 export default function ShowForm() {
-  let request = {
-    id: 0,
-    name: "",
-    email: "",
-    password: "123456",
-    address: "",
-    contact: "",
-    birthDate: "",
-    nominee: "",
-  };
+  const [showGrid, setShowGrid] = useState(false);
+  const [apiResponse, setApiResponse] = useState([]);
+  const [error, setError] = useState(null);
 
   const EditCellRenderer = (item) => {
     if (
-      (isNewRow.find((x) => x.index == item["index"])?.newRow &&
-        item["id"] == "") ||
-      isUpdated.find((x) => x.index == item["index"])?.edit
+      (item["index"].toString().startsWith("New_") && item["id"] == "") ||
+      item["isUpdated"]
     )
       return <button onClick={() => saveCustomer(item["index"])}>Save</button>;
     return (
       <button
         onClick={() => {
-          setIsUpdated([...isUpdated, { index: item["index"], edit: true }]);
+          setApiResponse((apiResponse) =>
+            apiResponse.map((customer) => {
+              if (customer.index === item["index"]) {
+                return { ...customer, isUpdated: true };
+              } else {
+                return customer;
+              }
+            })
+          );
         }}
       >
         Edit
@@ -35,32 +36,22 @@ export default function ShowForm() {
 
   const DeleteCellRenderer = (item) => {
     if (
-      (isNewRow.find((x) => x.index == item["index"])?.newRow &&
-        item["id"] == "") ||
-      isUpdated.find((x) => x.index == item["index"])?.edit
+      (item["index"].toString().startsWith("New_") && item["id"] == "") ||
+      item["isUpdated"]
     )
       return (
         <button
           onClick={() => {
-            if (isNewRow.find((x) => x.index == item["index"])?.newRow)
+            if (item["index"].toString().startsWith("New_"))
               setApiResponse(
                 apiResponse.filter((x) => x.index != item["index"])
               );
-            setIsNewRow((item) =>
-              item.map((value) => {
-                if (value.index === item["index"]) {
-                  return { ...value, isNewRow: false };
+            setApiResponse((apiResponse) =>
+              apiResponse.map((customer) => {
+                if (customer.index === item["index"]) {
+                  return { ...customer, isUpdated: false };
                 } else {
-                  return item;
-                }
-              })
-            );
-            setIsUpdated((item) =>
-              item.map((value) => {
-                if (value.index === item["index"]) {
-                  return { ...value, edit: false };
-                } else {
-                  return item;
+                  return customer;
                 }
               })
             );
@@ -72,11 +63,12 @@ export default function ShowForm() {
     return (
       <button
         onClick={async () => {
-          let statusCode = await deleteCustomer(item["id"]).then((result) => {
-            return result;
-          });
+          let statusCode = await deleteCustomer(item["id"]);
           if (statusCode == 200) {
+            notifySuccess();
             setApiResponse(apiResponse.filter((x) => x.id != item["id"]));
+          } else {
+            notifyError(statusCode);
           }
         }}
       >
@@ -85,26 +77,17 @@ export default function ShowForm() {
     );
   };
 
-  const [showGrid, setShowGrid] = useState(false);
-  const [apiResponse, setApiResponse] = useState([]);
-  const [error, setError] = useState(null);
-  const [isNewRow, setIsNewRow] = useState([]);
-  const [isUpdated, setIsUpdated] = useState([]);
-
   const colDefs = [
     { field: "name", headerName: "Name" },
     { field: "email", headerName: "Email" },
     { field: "address", headerName: "Address" },
-    { field: "contact", headerName: "Contact" },
+    { field: "contact", headerName: "Contact", minLength: 10, maxLength: 10 },
     { field: "birthDate", headerName: "Birth Date" },
     { field: "nominee", headerName: "Nominee" },
     {
       field: "edit",
       headerName: "Edit",
       cellRenderer: EditCellRenderer,
-      // cellRendererParams: {
-      //   customFunc: setRequest,
-      // },
     },
     {
       field: "delete",
@@ -113,9 +96,31 @@ export default function ShowForm() {
     },
   ];
 
+  useEffect(() => {
+    return console.log("EFFECT: ", apiResponse);
+  }, [apiResponse]);
+
+  let request = {
+    id: 0,
+    name: "",
+    email: "",
+    password: "123456",
+    address: "",
+    contact: "",
+    birthDate: "",
+    nominee: "",
+  };
+
+  const notifySuccess = () => toast.success("Success!");
+  const notifyError = (err) => toast.error(err);
+
   function addRowInTable() {
-    let index = "New_" + (apiResponse.length + 1);
-    setIsNewRow([...isNewRow, { index: index, newRow: true }]);
+    let count = apiResponse[apiResponse.length - 1].index
+      .toString()
+      .startsWith("New_")
+      ? apiResponse[apiResponse.length - 1].index.toString().split("_")[1]
+      : apiResponse[apiResponse.length - 1].index;
+    let index = "New_" + (Number(count) + 1);
     setApiResponse([
       ...apiResponse,
       {
@@ -123,47 +128,13 @@ export default function ShowForm() {
         id: 0,
         name: "",
         contact: "",
-        birthDate: "",
+        birthDate: new Date(),
         nominee: "",
         email: "",
         address: "",
       },
     ]);
   }
-
-  function addTableData(item, column) {
-    let fieldName = column.field;
-    return (
-      <td>
-        {"cellRenderer" in column ? (
-          column.cellRenderer(item)
-        ) : (isNewRow.find((x) => x.index == item["index"])?.newRow &&
-            item["index"].toString().startsWith("New_")) ||
-          isUpdated.find((x) => x.index == item["index"])?.edit ? (
-          <input
-            value={item[fieldName]}
-            onChange={(e) => {
-              setApiResponse((apiResponse) =>
-                apiResponse.map((customer) => {
-                  if (customer.index === item["index"]) {
-                    return { ...customer, [fieldName]: e.target.value };
-                  } else {
-                    return customer;
-                  }
-                })
-              );
-            }}
-          />
-        ) : (
-          item[fieldName]
-        )}
-      </td>
-    );
-  }
-
-  // useEffect(() => {
-  //   return console.log("EFFECT: ", apiResponse);
-  // }, [apiResponse]);
 
   async function saveCustomer(index) {
     var x = apiResponse.find((item) => item.index === index);
@@ -178,21 +149,23 @@ export default function ShowForm() {
       nominee: x.nominee,
     };
     let id = await addCustomer(request);
-    setApiResponse((apiResponse) =>
-      apiResponse.map((customer) => {
-        if (customer.index === index) {
-          return { ...customer, id: id, index: "" };
-        } else {
-          return customer;
-        }
-      })
-    );
-
-    setIsUpdated(isUpdated.filter((x) => x.index != index));
-    setIsNewRow(isNewRow.filter((x) => x.index != index));
+    if (Number(id)) {
+      notifySuccess();
+      setApiResponse((apiResponse) =>
+        apiResponse.map((customer) => {
+          if (customer.index === index) {
+            return { ...customer, id: id, index: "", isUpdated: false };
+          } else {
+            return customer;
+          }
+        })
+      );
+    } else notifyError(id);
   }
+
   return (
     <>
+      <ToastContainer />
       <Button
         variant="outlined"
         onClick={() => {
@@ -202,7 +175,6 @@ export default function ShowForm() {
       >
         Add
       </Button>
-
       <Button
         variant="outlined"
         onClick={() => {
@@ -236,7 +208,7 @@ export default function ShowForm() {
                   <>
                     <tr>
                       {colDefs.map((col) => {
-                        return addTableData(item, col);
+                        return AddTableData(col, item, setApiResponse);
                       })}
                     </tr>
                   </>
@@ -247,5 +219,47 @@ export default function ShowForm() {
         </Box>
       )}
     </>
+  );
+}
+
+function isValidDate(stringDate) {
+  if (Number(stringDate) == stringDate) return false;
+  return !isNaN(Date.parse(stringDate));
+}
+
+export function AddTableData(column, item, setApiResponse) {
+  const [isInputValid, setIsInputValid] = useState(true);
+  let fieldName = column.field;
+  return (
+    <td>
+      {"cellRenderer" in column ? (
+        column.cellRenderer(item)
+      ) : item["index"].toString().startsWith("New_") || item["isUpdated"] ? (
+        <input
+          type={isValidDate(item[fieldName]) ? "date" : ""}
+          maxLength={column.maxLength}
+          value={item[fieldName]}
+          className={isInputValid ? "" : "invalid-input"}
+          onChange={(e) => {
+            setIsInputValid(
+              "maxLength" in column
+                ? e.target.value.length == column.maxLength
+                : true
+            );
+            setApiResponse((apiResponse) =>
+              apiResponse.map((customer) => {
+                if (customer.index === item["index"]) {
+                  return { ...customer, [fieldName]: e.target.value };
+                } else {
+                  return customer;
+                }
+              })
+            );
+          }}
+        />
+      ) : (
+        item[fieldName]
+      )}
+    </td>
   );
 }

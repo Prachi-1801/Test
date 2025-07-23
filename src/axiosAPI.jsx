@@ -1,4 +1,5 @@
 import axios from "axios";
+
 var baseQuery = import.meta.env.VITE_API;
 
 export const deleteCustomer = async (customerId) => {
@@ -7,49 +8,30 @@ export const deleteCustomer = async (customerId) => {
       baseQuery + "/Customer/DeleteCustomer/" + customerId
     );
     return response.data.StatusCode;
-    // viewAll(setApiResponse, setError);
   } catch (error) {
-    console.log(error);
+    return error.response.data.StatusMessage;
   }
 };
-
 export const viewAll = async (setApiResponse, setError) => {
   try {
     // Replace with your .NET API endpoint
     const response = await axios.get(baseQuery + "/Customer/GetCustomers");
     response.data.Result.forEach((element, index) => {
       element["index"] = index + 1;
+      element["birthDate"] = new Date(element["birthDate"])
+        .toISOString()
+        .split("T")[0];
     });
     setApiResponse(response.data.Result);
     setError(null); // Clear any previous errors
-  } catch (err) {
-    setError(err.message);
-    console.log(err.message);
+  } catch (error) {
+    setError(error.message);
     setApiResponse(null); // Clear any previous data
+    return error.response.data.StatusMessage;
   }
 };
 
-// export const addCustomer = async (request, setApiResponse, setError) => {
-//   console.log(request);
-//   try {
-//     await axios.post(baseQuery + "/Customer/Register", {
-//       id: request.id,
-//       name: request.name,
-//       email: request.email,
-//       password: request.password,
-//       address: request.address,
-//       contact: request.contact,
-//       birthDate: new Date(request.birthDate),
-//       nominee: request.nominee,
-//     });
-//     viewAll(setApiResponse, setError);
-//   } catch (error) {
-//     console.log(error);
-//   }
-// };
-
 export const addCustomer = async (request) => {
-  console.log(request);
   try {
     let response = await axios.post(baseQuery + "/Customer/Register", {
       id: request.id,
@@ -58,12 +40,11 @@ export const addCustomer = async (request) => {
       password: request.password,
       address: request.address,
       contact: request.contact,
-      birthDate: new Date(request.birthDate),
+      birthDate: new Date(request.birthDate).toISOString().split("T")[0],
       nominee: request.nominee,
     });
-    console.log(await response.data.Result);
     return await response.data.Result;
   } catch (error) {
-    console.log(error);
+    return error.response.data.StatusMessage;
   }
 };
