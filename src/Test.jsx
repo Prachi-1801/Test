@@ -1,79 +1,101 @@
-import { Button, Box } from "@mui/material";
-import { useEffect, useState } from "react";
-import "./App.css";
-import { addCustomer, deleteCustomer, viewAll } from "./axiosAPI.jsx";
+import { useEffect, useMemo, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
+import { Button, Box } from "@mui/material";
+import { addCustomer, deleteCustomer, viewAll } from "./axiosAPI";
+import "./App.css";
 
-export default function ShowForm() {
-  const [showGrid, setShowGrid] = useState(false);
-  const [apiResponse, setApiResponse] = useState([]);
-  const [error, setError] = useState(null);
-
-  const EditCellRenderer = (item) => {
-    if (
-      (item["index"].toString().startsWith("New_") && item["id"] == "") ||
-      item["isUpdated"]
-    )
-      return <button onClick={() => saveCustomer(item["index"])}>Save</button>;
-    return (
-      <button
-        onClick={() => {
-          setApiResponse((apiResponse) =>
-            apiResponse.map((customer) => {
-              if (customer.index === item["index"]) {
-                return { ...customer, isUpdated: true };
-              } else {
-                return customer;
-              }
-            })
-          );
-        }}
-      >
-        Edit
-      </button>
-    );
-  };
-
-  const DeleteCellRenderer = (item) => {
-    if (
-      (item["index"].toString().startsWith("New_") && item["id"] == "") ||
-      item["isUpdated"]
-    )
-      return (
-        <button
-          onClick={() => {
-            if (item["index"].toString().startsWith("New_"))
-              setApiResponse(
-                apiResponse.filter((x) => x.index != item["index"])
-              );
+export function AddTableData({ column, item, setApiResponse }) {
+  const [isInputValid, setIsInputValid] = useState(true);
+  // let fieldName = column.field;
+  const fieldName = useMemo(() => column.field, [column.field]);
+  return (
+    <td>
+      {"cellRenderer" in column ? (
+        column.cellRenderer(item)
+      ) : item["index"].toString().startsWith("New_") || item["isUpdated"] ? (
+        <input
+          type={isValidDate(item[fieldName]) ? "date" : ""}
+          maxLength={column.maxLength}
+          value={item[fieldName]}
+          className={isInputValid ? "" : "invalid-input"}
+          onChange={(e) => {
+            setIsInputValid(
+              "maxLength" in column
+                ? e.target.value.length == column.maxLength
+                : true
+            );
             setApiResponse((apiResponse) =>
               apiResponse.map((customer) => {
                 if (customer.index === item["index"]) {
-                  return { ...customer, isUpdated: false };
+                  return { ...customer, [fieldName]: e.target.value };
                 } else {
                   return customer;
                 }
               })
             );
           }}
-        >
-          Cancel
-        </button>
-      );
-    return (
-      <button
-        onClick={async () => {
-          let statusCode = await deleteCustomer(item["id"]);
-          if (statusCode == 200) {
-            notifySuccess();
-            setApiResponse(apiResponse.filter((x) => x.id != item["id"]));
+        />
+      ) : (
+        item[fieldName]
+      )}
+    </td>
+  );
+}
+
+const ShowForm = () => {
+  const [showGrid, setShowGrid] = useState(false);
+  const [apiResponse, setApiResponse] = useState([]);
+  const [error, setError] = useState(null);
+
+  const editCellRenderer = (item) => {
+    const handleEdit = () => {
+      setApiResponse((apiResponse) =>
+        apiResponse.map((customer) => {
+          if (customer.index === item["index"]) {
+            return { ...customer, isUpdated: true };
           } else {
-            notifyError(statusCode);
+            return customer;
           }
-        }}
-      >
-        Delete
-      </button>
+        })
+      );
+    };
+
+    return (item["index"].toString().startsWith("New_") && item["id"] == "") ||
+      item["isUpdated"] ? (
+      <button onClick={() => saveCustomer(item["index"])}>Save</button>
+    ) : (
+      <button onClick={handleEdit}>Edit</button>
+    );
+  };
+  const deleteCellRenderer = (item) => {
+    const handleCancel = () => {
+      if (item["index"].toString().startsWith("New_"))
+        setApiResponse(apiResponse.filter((x) => x.index != item["index"]));
+      setApiResponse((apiResponse) =>
+        apiResponse.map((customer) => {
+          if (customer.index === item["index"]) {
+            return { ...customer, isUpdated: false };
+          } else {
+            return customer;
+          }
+        })
+      );
+    };
+
+    const handleDelete = async () => {
+      let statusCode = await deleteCustomer(item["id"]);
+      if (statusCode == 200) {
+        notifySuccess();
+        setApiResponse(apiResponse.filter((x) => x.id != item["id"]));
+      } else {
+        notifyError(statusCode);
+      }
+    };
+    return (item["index"].toString().startsWith("New_") && item["id"] == "") ||
+      item["isUpdated"] ? (
+      <button onClick={handleCancel}>Cancel</button>
+    ) : (
+      <button onClick={handleDelete}>Delete</button>
     );
   };
 
@@ -87,12 +109,12 @@ export default function ShowForm() {
     {
       field: "edit",
       headerName: "Edit",
-      cellRenderer: EditCellRenderer,
+      cellRenderer: editCellRenderer,
     },
     {
       field: "delete",
       headerName: "Delete",
-      cellRenderer: DeleteCellRenderer,
+      cellRenderer: deleteCellRenderer,
     },
   ];
 
@@ -208,7 +230,13 @@ export default function ShowForm() {
                   <>
                     <tr>
                       {colDefs.map((col) => {
-                        return AddTableData(col, item, setApiResponse);
+                        return (
+                          <AddTableData
+                            column={col}
+                            item={item}
+                            setApiResponse={setApiResponse}
+                          />
+                        );
                       })}
                     </tr>
                   </>
@@ -220,46 +248,10 @@ export default function ShowForm() {
       )}
     </>
   );
-}
+};
+
+export default ShowForm;
 
 function isValidDate(stringDate) {
-  if (Number(stringDate) == stringDate) return false;
   return !isNaN(Date.parse(stringDate));
-}
-
-export function AddTableData(column, item, setApiResponse) {
-  const [isInputValid, setIsInputValid] = useState(true);
-  let fieldName = column.field;
-  return (
-    <td>
-      {"cellRenderer" in column ? (
-        column.cellRenderer(item)
-      ) : item["index"].toString().startsWith("New_") || item["isUpdated"] ? (
-        <input
-          type={isValidDate(item[fieldName]) ? "date" : ""}
-          maxLength={column.maxLength}
-          value={item[fieldName]}
-          className={isInputValid ? "" : "invalid-input"}
-          onChange={(e) => {
-            setIsInputValid(
-              "maxLength" in column
-                ? e.target.value.length == column.maxLength
-                : true
-            );
-            setApiResponse((apiResponse) =>
-              apiResponse.map((customer) => {
-                if (customer.index === item["index"]) {
-                  return { ...customer, [fieldName]: e.target.value };
-                } else {
-                  return customer;
-                }
-              })
-            );
-          }}
-        />
-      ) : (
-        item[fieldName]
-      )}
-    </td>
-  );
 }
