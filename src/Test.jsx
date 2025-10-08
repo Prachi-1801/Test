@@ -1,20 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
-import { Button, Box } from "@mui/material";
+import { Button, Box, Grid } from "@mui/material";
 import { addCustomer, deleteCustomer, viewAll } from "./axiosAPI";
+import Pagination from "./Pagination";
 import "./App.css";
 
 export function AddTableData({ column, item, setApiResponse }) {
   const [isInputValid, setIsInputValid] = useState(true);
-  // let fieldName = column.field;
   const fieldName = useMemo(() => column.field, [column.field]);
+
   return (
     <td>
-      {"cellRenderer" in column ? (
+      {column?.cellRenderer ? (
         column.cellRenderer(item)
       ) : item["index"].toString().startsWith("New_") || item["isUpdated"] ? (
         <input
-          type={isValidDate(item[fieldName]) ? "date" : ""}
+          type={column.isDate ? "date" : ""}
           maxLength={column.maxLength}
           value={item[fieldName]}
           className={isInputValid ? "" : "invalid-input"}
@@ -46,6 +47,8 @@ const ShowForm = () => {
   const [showGrid, setShowGrid] = useState(false);
   const [apiResponse, setApiResponse] = useState([]);
   const [error, setError] = useState(null);
+  const [startIndex, setStartIndex] = useState(0);
+  const [endIndex, setEndIndex] = useState(2);
 
   const editCellRenderer = (item) => {
     const handleEdit = () => {
@@ -104,7 +107,7 @@ const ShowForm = () => {
     { field: "email", headerName: "Email" },
     { field: "address", headerName: "Address" },
     { field: "contact", headerName: "Contact", minLength: 10, maxLength: 10 },
-    { field: "birthDate", headerName: "Birth Date" },
+    { field: "birthDate", headerName: "Birth Date", isDate: true },
     { field: "nominee", headerName: "Nominee" },
     {
       field: "edit",
@@ -117,10 +120,6 @@ const ShowForm = () => {
       cellRenderer: deleteCellRenderer,
     },
   ];
-
-  useEffect(() => {
-    return console.log("EFFECT: ", apiResponse);
-  }, [apiResponse]);
 
   let request = {
     id: 0,
@@ -212,12 +211,14 @@ const ShowForm = () => {
         {!showGrid ? "View" : "Hide"} All
       </Button>
       {showGrid && (
-        <Box sx={{ display: "flex", justifyContent: "center", margin: 5 }}>
-          <div
-            className="ag-theme-quartz"
-            style={{ height: 400, width: "inherit" }}
+        <Grid container justifyContent="center">
+          <Box
+            sx={{
+              margin: 5,
+              border: "1px solid black",
+            }}
           >
-            <table id="customerTable" style={{ border: "1px solid black" }}>
+            <table id="customerTable">
               <thead>
                 <tr>
                   {colDefs.map((item) => (
@@ -226,7 +227,7 @@ const ShowForm = () => {
                 </tr>
               </thead>
               <tbody>
-                {apiResponse.map((item) => (
+                {apiResponse.slice(startIndex, endIndex).map((item) => (
                   <>
                     <tr>
                       {colDefs.map((col) => {
@@ -243,15 +244,18 @@ const ShowForm = () => {
                 ))}
               </tbody>
             </table>
-          </div>
-        </Box>
+            <Pagination
+              recordsCount={apiResponse.length}
+              startIndex={startIndex}
+              setStartIndex={setStartIndex}
+              endIndex={endIndex}
+              setEndIndex={setEndIndex}
+            ></Pagination>
+          </Box>
+        </Grid>
       )}
     </>
   );
 };
 
 export default ShowForm;
-
-function isValidDate(stringDate) {
-  return !isNaN(Date.parse(stringDate));
-}
