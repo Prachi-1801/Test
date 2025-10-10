@@ -42,14 +42,12 @@ const Pagination = ({
       </select>
       <button
         onClick={() => {
-          console.log("Before StartIndex", startIndex, "EndIndex", endIndex);
           {
             startIndex - selectedCount <= 0
               ? setStartIndex(0)
               : setStartIndex(startIndex - selectedCount);
           }
           setEndIndex(endIndex - selectedCount);
-          console.log("After StartIndex", startIndex, "EndIndex", endIndex);
           setIsNext(false);
           setCurrentPage((p) => p - 1);
           if (startIndex - selectedCount <= 0) {

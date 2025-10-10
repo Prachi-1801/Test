@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
-import { Button, Box, Grid } from "@mui/material";
+import { Button, Box, Grid, Input } from "@mui/material";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { addCustomer, deleteCustomer, viewAll } from "./axiosAPI";
 import Pagination from "./Pagination";
 import "./App.css";
@@ -49,6 +51,7 @@ const ShowForm = () => {
   const [error, setError] = useState(null);
   const [startIndex, setStartIndex] = useState(0);
   const [endIndex, setEndIndex] = useState(2);
+  const [sortOrder, setSortOrder] = useState({ name: "", sort: "" });
 
   const editCellRenderer = (item) => {
     const handleEdit = () => {
@@ -103,12 +106,23 @@ const ShowForm = () => {
   };
 
   const colDefs = [
-    { field: "name", headerName: "Name" },
-    { field: "email", headerName: "Email" },
-    { field: "address", headerName: "Address" },
-    { field: "contact", headerName: "Contact", minLength: 10, maxLength: 10 },
-    { field: "birthDate", headerName: "Birth Date", isDate: true },
-    { field: "nominee", headerName: "Nominee" },
+    { field: "name", headerName: "Name", sortable: false },
+    { field: "email", headerName: "Email", sortable: false },
+    { field: "address", headerName: "Address", sortable: false },
+    {
+      field: "contact",
+      headerName: "Contact",
+      sortable: false,
+      minLength: 10,
+      maxLength: 10,
+    },
+    {
+      field: "birthDate",
+      headerName: "Birth Date",
+      sortable: false,
+      isDate: true,
+    },
+    { field: "nominee", headerName: "Nominee", sortable: false },
     {
       field: "edit",
       headerName: "Edit",
@@ -136,14 +150,9 @@ const ShowForm = () => {
   const notifyError = (err) => toast.error(err);
 
   function addRowInTable() {
-    let count = apiResponse[apiResponse.length - 1].index
-      .toString()
-      .startsWith("New_")
-      ? apiResponse[apiResponse.length - 1].index.toString().split("_")[1]
-      : apiResponse[apiResponse.length - 1].index;
-    let index = "New_" + (Number(count) + 1);
-    setApiResponse([
-      ...apiResponse,
+    let i = 1;
+    let index = "New_" + i;
+    setApiResponse((apiResponse) => [
       {
         index: index,
         id: 0,
@@ -154,6 +163,13 @@ const ShowForm = () => {
         email: "",
         address: "",
       },
+      ...apiResponse.map((customer) => {
+        i++;
+        if (customer.index.toString().includes("New_")) {
+          return { ...customer, index: "New_" + i };
+        }
+        return { ...customer, index: i };
+      }),
     ]);
   }
 
@@ -210,6 +226,7 @@ const ShowForm = () => {
       >
         {!showGrid ? "View" : "Hide"} All
       </Button>
+      <Input></Input>
       {showGrid && (
         <Grid container justifyContent="center">
           <Box
@@ -222,7 +239,45 @@ const ShowForm = () => {
               <thead>
                 <tr>
                   {colDefs.map((item) => (
-                    <th key={item.field}>{item.headerName}</th>
+                    <th key={item.field}>
+                      <Box
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {" "}
+                        {item.headerName}
+                        {!item.cellRenderer ? (
+                          item.sortable ? (
+                            <Button
+                              onClick={() => {
+                                setApiResponse(
+                                  [...apiResponse].sort((a, b) =>
+                                    b.name.localeCompare(a.name)
+                                  )
+                                );
+                              }}
+                            >
+                              <ArrowUpwardIcon width={1}></ArrowUpwardIcon>
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() => {
+                                setApiResponse(
+                                  [...apiResponse].sort((a, b) =>
+                                    a.name.localeCompare(b.name)
+                                  )
+                                );
+                              }}
+                            >
+                              <ArrowDownwardIcon width={1}></ArrowDownwardIcon>
+                            </Button>
+                          )
+                        ) : null}
+                      </Box>
+                    </th>
                   ))}
                 </tr>
               </thead>
