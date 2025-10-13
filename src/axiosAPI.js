@@ -12,7 +12,11 @@ export const deleteCustomer = async (customerId) => {
     return error.response.data.StatusMessage;
   }
 };
-export const viewAll = async (setApiResponse, setError) => {
+export const viewAll = async (
+  setApiResponse,
+  setFilteredApiResponse,
+  setError
+) => {
   try {
     // Replace with your .NET API endpoint
     const response = await axios.get(baseQuery + "/Customer/GetCustomers");
@@ -23,10 +27,12 @@ export const viewAll = async (setApiResponse, setError) => {
         .split("T")[0];
     });
     setApiResponse(response.data.Result);
+    setFilteredApiResponse(response.data.Result);
     setError(null); // Clear any previous errors
   } catch (error) {
     setError(error.message);
     setApiResponse(null); // Clear any previous data
+    setFilteredApiResponse(null);
     return error.response.data.StatusMessage;
   }
 };

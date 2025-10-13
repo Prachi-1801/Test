@@ -1,13 +1,21 @@
 import { useMemo, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
-import { Button, Box, Grid, Input } from "@mui/material";
+import { Button, Box, Grid, Input, TextField } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import SearchIcon from "@mui/icons-material/Search";
+import InputAdornment from "@mui/material/InputAdornment";
 import { addCustomer, deleteCustomer, viewAll } from "./axiosAPI";
 import Pagination from "./Pagination";
 import "./App.css";
 
-export function AddTableData({ column, item, setApiResponse }) {
+export function AddTableData({
+  column,
+  item,
+  setApiResponse,
+  apiResponse,
+  setFilteredApiResponse,
+}) {
   const [isInputValid, setIsInputValid] = useState(true);
   const fieldName = useMemo(() => column.field, [column.field]);
 
@@ -27,15 +35,15 @@ export function AddTableData({ column, item, setApiResponse }) {
                 ? e.target.value.length == column.maxLength
                 : true
             );
-            setApiResponse((apiResponse) =>
-              apiResponse.map((customer) => {
-                if (customer.index === item["index"]) {
-                  return { ...customer, [fieldName]: e.target.value };
-                } else {
-                  return customer;
-                }
-              })
-            );
+            let originalApiResponse = apiResponse.map((customer) => {
+              if (customer.index === item["index"]) {
+                return { ...customer, [fieldName]: e.target.value };
+              } else {
+                return customer;
+              }
+            });
+            setApiResponse(originalApiResponse);
+            setFilteredApiResponse(originalApiResponse);
           }}
         />
       ) : (
@@ -48,6 +56,7 @@ export function AddTableData({ column, item, setApiResponse }) {
 const ShowForm = () => {
   const [showGrid, setShowGrid] = useState(false);
   const [apiResponse, setApiResponse] = useState([]);
+  const [filteredApiResponse, setFilteredApiResponse] = useState([]);
   const [error, setError] = useState(null);
   const [startIndex, setStartIndex] = useState(0);
   const [endIndex, setEndIndex] = useState(2);
@@ -64,6 +73,7 @@ const ShowForm = () => {
           }
         })
       );
+      setFilteredApiResponse(apiResponse);
     };
 
     return (item["index"].toString().startsWith("New_") && item["id"] == "") ||
@@ -86,6 +96,7 @@ const ShowForm = () => {
           }
         })
       );
+      setFilteredApiResponse(apiResponse);
     };
 
     const handleDelete = async () => {
@@ -93,6 +104,7 @@ const ShowForm = () => {
       if (statusCode == 200) {
         notifySuccess();
         setApiResponse(apiResponse.filter((x) => x.id != item["id"]));
+        setFilteredApiResponse(apiResponse);
       } else {
         notifyError(statusCode);
       }
@@ -106,20 +118,19 @@ const ShowForm = () => {
   };
 
   const colDefs = [
-    { field: "name", headerName: "Name", sortable: false },
-    { field: "email", headerName: "Email", sortable: false },
-    { field: "address", headerName: "Address", sortable: false },
+    { field: "name", headerName: "Name", sortable: true },
+    { field: "email", headerName: "Email", sortable: true },
+    { field: "address", headerName: "Address", sortable: true },
     {
       field: "contact",
       headerName: "Contact",
-      sortable: false,
       minLength: 10,
       maxLength: 10,
     },
     {
       field: "birthDate",
       headerName: "Birth Date",
-      sortable: false,
+      sortable: true,
       isDate: true,
     },
     { field: "nominee", headerName: "Nominee", sortable: false },
@@ -152,7 +163,7 @@ const ShowForm = () => {
   function addRowInTable() {
     let i = 1;
     let index = "New_" + i;
-    setApiResponse((apiResponse) => [
+    let newApiResponse = [
       {
         index: index,
         id: 0,
@@ -170,7 +181,11 @@ const ShowForm = () => {
         }
         return { ...customer, index: i };
       }),
-    ]);
+    ];
+    setApiResponse(newApiResponse);
+    console.log("Before", filteredApiResponse);
+    setFilteredApiResponse(newApiResponse);
+    console.log("After", filteredApiResponse);
   }
 
   async function saveCustomer(index) {
@@ -188,45 +203,65 @@ const ShowForm = () => {
     let id = await addCustomer(request);
     if (Number(id)) {
       notifySuccess();
-      setApiResponse((apiResponse) =>
-        apiResponse.map((customer) => {
-          if (customer.index === index) {
-            return { ...customer, id: id, index: "", isUpdated: false };
-          } else {
-            return customer;
-          }
-        })
-      );
+      let newApiResponse = apiResponse.map((customer) => {
+        if (customer.index === index) {
+          return { ...customer, id: id, index: "", isUpdated: false };
+        } else {
+          return customer;
+        }
+      });
+      setApiResponse(newApiResponse);
+      setFilteredApiResponse(newApiResponse);
     } else notifyError(id);
   }
 
   return (
     <>
       <ToastContainer />
-      <Button
-        variant="outlined"
-        onClick={() => {
-          addRowInTable();
-        }}
-        style={{ margin: "5px" }}
-      >
-        Add
-      </Button>
-      <Button
-        variant="outlined"
-        onClick={() => {
-          if (!showGrid) {
-            setShowGrid(true);
-            viewAll(setApiResponse, setError);
-            console.log(error);
-          } else {
-            setShowGrid(false);
-          }
-        }}
-      >
-        {!showGrid ? "View" : "Hide"} All
-      </Button>
-      <Input></Input>
+      <Box display={"flex"} justifyContent={"center"} gap={"10px"}>
+        <Button
+          variant="outlined"
+          onClick={() => {
+            addRowInTable();
+          }}
+        >
+          Add
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={() => {
+            if (!showGrid) {
+              setShowGrid(true);
+              viewAll(setApiResponse, setFilteredApiResponse, setError);
+              setFilteredApiResponse(apiResponse);
+              console.log(error);
+            } else {
+              setShowGrid(false);
+            }
+          }}
+        >
+          {!showGrid ? "View" : "Hide"} All
+        </Button>
+        <TextField
+          size="small"
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            },
+          }}
+          onChange={(e) => {
+            setFilteredApiResponse(() =>
+              [...apiResponse].filter((x) =>
+                x.name.toLowerCase().includes(e.target.value.toLowerCase())
+              )
+            );
+          }}
+        />
+      </Box>
       {showGrid && (
         <Grid container justifyContent="center">
           <Box
@@ -239,7 +274,38 @@ const ShowForm = () => {
               <thead>
                 <tr>
                   {colDefs.map((item) => (
-                    <th key={item.field}>
+                    <th
+                      key={item.field}
+                      onClick={() => {
+                        if (item.sortable) {
+                          let currentSortOrder = { name: "", sort: "" };
+                          if (
+                            sortOrder.sort == "" ||
+                            sortOrder.name != item.field
+                          ) {
+                            currentSortOrder.name = item.field;
+                            currentSortOrder.sort = "asc";
+                          } else if (sortOrder.sort == "asc") {
+                            currentSortOrder.name = item.field;
+                            currentSortOrder.sort = "desc";
+                          }
+                          setSortOrder(currentSortOrder);
+                          setFilteredApiResponse(() =>
+                            currentSortOrder.sort != ""
+                              ? [...apiResponse].sort((a, b) =>
+                                  currentSortOrder.sort == "desc"
+                                    ? b[currentSortOrder.name].localeCompare(
+                                        a[currentSortOrder.name]
+                                      )
+                                    : a[currentSortOrder.name].localeCompare(
+                                        b[currentSortOrder.name]
+                                      )
+                                )
+                              : apiResponse
+                          );
+                        }
+                      }}
+                    >
                       <Box
                         style={{
                           display: "flex",
@@ -249,40 +315,13 @@ const ShowForm = () => {
                       >
                         {" "}
                         {item.headerName}
-                        {!item.cellRenderer ? (
-                          item.sortable ? (
-                            <Button
-                              onClick={() => {
-                                setApiResponse(
-                                  [...apiResponse].sort((a, b) =>
-                                    b.name.localeCompare(a.name)
-                                  )
-                                );
-                              }}
-                            >
-                              <ArrowUpwardIcon width={1}></ArrowUpwardIcon>
-                            </Button>
-                          ) : (
-                            <Button
-                              onClick={() => {
-                                setApiResponse(
-                                  [...apiResponse].sort((a, b) =>
-                                    a.name.localeCompare(b.name)
-                                  )
-                                );
-                              }}
-                            >
-                              <ArrowDownwardIcon width={1}></ArrowDownwardIcon>
-                            </Button>
-                          )
-                        ) : null}
                       </Box>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {apiResponse.slice(startIndex, endIndex).map((item) => (
+                {filteredApiResponse.slice(startIndex, endIndex).map((item) => (
                   <>
                     <tr>
                       {colDefs.map((col) => {
@@ -291,6 +330,8 @@ const ShowForm = () => {
                             column={col}
                             item={item}
                             setApiResponse={setApiResponse}
+                            apiResponse={apiResponse}
+                            setFilteredApiResponse={setFilteredApiResponse}
                           />
                         );
                       })}
@@ -300,7 +341,7 @@ const ShowForm = () => {
               </tbody>
             </table>
             <Pagination
-              recordsCount={apiResponse.length}
+              recordsCount={filteredApiResponse.length}
               startIndex={startIndex}
               setStartIndex={setStartIndex}
               endIndex={endIndex}
