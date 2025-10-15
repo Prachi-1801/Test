@@ -1,15 +1,13 @@
 import { useMemo, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
-import { Button, Box, Grid, Input, TextField } from "@mui/material";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import { Button, Box, Grid, TextField } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import InputAdornment from "@mui/material/InputAdornment";
 import { addCustomer, deleteCustomer, viewAll } from "./axiosAPI";
 import Pagination from "./Pagination";
 import "./App.css";
-
-export function AddTableData({
+import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
+function AddTableData({
   column,
   item,
   setApiResponse,
@@ -19,8 +17,23 @@ export function AddTableData({
   const [isInputValid, setIsInputValid] = useState(true);
   const fieldName = useMemo(() => column.field, [column.field]);
 
+  function handleInput(e) {
+    setIsInputValid(
+      "maxLength" in column ? e.target.value.length == column.maxLength : true
+    );
+    let originalApiResponse = apiResponse.map((customer) => {
+      if (customer.index === item["index"]) {
+        return { ...customer, [fieldName]: e.target.value };
+      } else {
+        return customer;
+      }
+    });
+    setApiResponse(originalApiResponse);
+    setFilteredApiResponse(originalApiResponse);
+  }
+
   return (
-    <td>
+    <td style={{ padding: "10px" }}>
       {column?.cellRenderer ? (
         column.cellRenderer(item)
       ) : item["index"].toString().startsWith("New_") || item["isUpdated"] ? (
@@ -30,20 +43,7 @@ export function AddTableData({
           value={item[fieldName]}
           className={isInputValid ? "" : "invalid-input"}
           onChange={(e) => {
-            setIsInputValid(
-              "maxLength" in column
-                ? e.target.value.length == column.maxLength
-                : true
-            );
-            let originalApiResponse = apiResponse.map((customer) => {
-              if (customer.index === item["index"]) {
-                return { ...customer, [fieldName]: e.target.value };
-              } else {
-                return customer;
-              }
-            });
-            setApiResponse(originalApiResponse);
-            setFilteredApiResponse(originalApiResponse);
+            handleInput(e);
           }}
         />
       ) : (
@@ -61,6 +61,7 @@ const ShowForm = () => {
   const [startIndex, setStartIndex] = useState(0);
   const [endIndex, setEndIndex] = useState(2);
   const [sortOrder, setSortOrder] = useState({ name: "", sort: "" });
+  const [selectedCount, setSelectedCount] = useState(2);
 
   const editCellRenderer = (item) => {
     const handleEdit = () => {
@@ -83,20 +84,23 @@ const ShowForm = () => {
       <button onClick={handleEdit}>Edit</button>
     );
   };
+
   const deleteCellRenderer = (item) => {
     const handleCancel = () => {
-      if (item["index"].toString().startsWith("New_"))
-        setApiResponse(apiResponse.filter((x) => x.index != item["index"]));
-      setApiResponse((apiResponse) =>
-        apiResponse.map((customer) => {
-          if (customer.index === item["index"]) {
-            return { ...customer, isUpdated: false };
-          } else {
-            return customer;
-          }
-        })
-      );
-      setFilteredApiResponse(apiResponse);
+      let newApiResponse = "";
+      if (item["index"].toString().startsWith("New_")) {
+        newApiResponse = apiResponse.filter((x) => x.index != item["index"]);
+        setApiResponse(newApiResponse);
+      }
+      newApiResponse = apiResponse.map((customer) => {
+        if (customer.index === item["index"]) {
+          return { ...customer, isUpdated: false };
+        } else {
+          return customer;
+        }
+      });
+      setApiResponse(newApiResponse);
+      setFilteredApiResponse(newApiResponse);
     };
 
     const handleDelete = async () => {
@@ -109,6 +113,7 @@ const ShowForm = () => {
         notifyError(statusCode);
       }
     };
+
     return (item["index"].toString().startsWith("New_") && item["id"] == "") ||
       item["isUpdated"] ? (
       <button onClick={handleCancel}>Cancel</button>
@@ -161,8 +166,8 @@ const ShowForm = () => {
   const notifyError = (err) => toast.error(err);
 
   function addRowInTable() {
-    let i = 1;
-    let index = "New_" + i;
+    let indexCount = 1;
+    let index = "New_" + indexCount;
     let newApiResponse = [
       {
         index: index,
@@ -175,17 +180,15 @@ const ShowForm = () => {
         address: "",
       },
       ...apiResponse.map((customer) => {
-        i++;
+        indexCount++;
         if (customer.index.toString().includes("New_")) {
-          return { ...customer, index: "New_" + i };
+          return { ...customer, index: "New_" + indexCount };
         }
-        return { ...customer, index: i };
+        return { ...customer, index: indexCount };
       }),
     ];
     setApiResponse(newApiResponse);
-    console.log("Before", filteredApiResponse);
     setFilteredApiResponse(newApiResponse);
-    console.log("After", filteredApiResponse);
   }
 
   async function saveCustomer(index) {
@@ -200,6 +203,7 @@ const ShowForm = () => {
       birthDate: x.birthDate,
       nominee: x.nominee,
     };
+
     let id = await addCustomer(request);
     if (Number(id)) {
       notifySuccess();
@@ -215,6 +219,32 @@ const ShowForm = () => {
     } else notifyError(id);
   }
 
+  function sorting(item) {
+    if (item.sortable) {
+      let currentSortOrder = { name: "", sort: "" };
+      if (sortOrder.sort == "" || sortOrder.name != item.field) {
+        currentSortOrder.name = item.field;
+        currentSortOrder.sort = "asc";
+      } else if (sortOrder.sort == "asc") {
+        currentSortOrder.name = item.field;
+        currentSortOrder.sort = "desc";
+      }
+      setSortOrder(currentSortOrder);
+      setFilteredApiResponse(() =>
+        currentSortOrder.sort != ""
+          ? [...apiResponse].sort((a, b) =>
+              currentSortOrder.sort == "desc"
+                ? b[currentSortOrder.name].localeCompare(
+                    a[currentSortOrder.name]
+                  )
+                : a[currentSortOrder.name].localeCompare(
+                    b[currentSortOrder.name]
+                  )
+            )
+          : apiResponse
+      );
+    }
+  }
   return (
     <>
       <ToastContainer />
@@ -268,6 +298,10 @@ const ShowForm = () => {
             sx={{
               margin: 5,
               border: "1px solid black",
+              padding: 2,
+              display: "flex",
+              flexDirection: "column",
+              gap: "15px",
             }}
           >
             <table id="customerTable">
@@ -277,34 +311,9 @@ const ShowForm = () => {
                     <th
                       key={item.field}
                       onClick={() => {
-                        if (item.sortable) {
-                          let currentSortOrder = { name: "", sort: "" };
-                          if (
-                            sortOrder.sort == "" ||
-                            sortOrder.name != item.field
-                          ) {
-                            currentSortOrder.name = item.field;
-                            currentSortOrder.sort = "asc";
-                          } else if (sortOrder.sort == "asc") {
-                            currentSortOrder.name = item.field;
-                            currentSortOrder.sort = "desc";
-                          }
-                          setSortOrder(currentSortOrder);
-                          setFilteredApiResponse(() =>
-                            currentSortOrder.sort != ""
-                              ? [...apiResponse].sort((a, b) =>
-                                  currentSortOrder.sort == "desc"
-                                    ? b[currentSortOrder.name].localeCompare(
-                                        a[currentSortOrder.name]
-                                      )
-                                    : a[currentSortOrder.name].localeCompare(
-                                        b[currentSortOrder.name]
-                                      )
-                                )
-                              : apiResponse
-                          );
-                        }
+                        sorting(item);
                       }}
+                      style={{ paddingRight: 10 }}
                     >
                       <Box
                         style={{
@@ -313,8 +322,18 @@ const ShowForm = () => {
                           justifyContent: "center",
                         }}
                       >
-                        {" "}
-                        {item.headerName}
+                        {item.headerName}{" "}
+                        {sortOrder.name == item.field ? (
+                          sortOrder.sort == "asc" ? (
+                            <ArrowUpward />
+                          ) : sortOrder.sort == "desc" ? (
+                            <ArrowDownward />
+                          ) : (
+                            ""
+                          )
+                        ) : (
+                          ""
+                        )}
                       </Box>
                     </th>
                   ))}
@@ -346,6 +365,8 @@ const ShowForm = () => {
               setStartIndex={setStartIndex}
               endIndex={endIndex}
               setEndIndex={setEndIndex}
+              selectedCount={selectedCount}
+              setSelectedCount={setSelectedCount}
             ></Pagination>
           </Box>
         </Grid>
