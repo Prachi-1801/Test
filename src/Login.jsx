@@ -113,7 +113,6 @@ const LoginForm = () => {
           <Button
             variant="outlined"
             onClick={() => {
-              console.log("UserName", userDetails);
               navigate("/test");
             }}
           >

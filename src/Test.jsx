@@ -7,6 +7,9 @@ import { addCustomer, deleteCustomer, viewAll } from "./axiosAPI";
 import Pagination from "./Pagination";
 import "./App.css";
 import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
+import CustomizedMenus from "./DownloadButton";
+import generatePdf, { getDocDefinition } from "./DownloadPdf";
+
 function AddTableData({
   column,
   item,
@@ -62,6 +65,7 @@ const ShowForm = () => {
   const [endIndex, setEndIndex] = useState(2);
   const [sortOrder, setSortOrder] = useState({ name: "", sort: "" });
   const [selectedCount, setSelectedCount] = useState(2);
+  const [fileUrl, setFileUrl] = useState(null);
 
   const editCellRenderer = (item) => {
     const handleEdit = () => {
@@ -82,6 +86,25 @@ const ShowForm = () => {
       <button onClick={() => saveCustomer(item["index"])}>Save</button>
     ) : (
       <button onClick={handleEdit}>Edit</button>
+    );
+  };
+
+  const downloadCellRenderer = (item) => {
+    console.log(item);
+    return (
+      <>
+        <button
+          onClick={() => {
+            const docDefinition = getDocDefinition(item);
+            const pdf = generatePdf(docDefinition);
+            pdf.getDataUrl((url) => {
+              setFileUrl(url);
+            });
+          }}
+        >
+          Download
+        </button>
+      </>
     );
   };
 
@@ -148,6 +171,11 @@ const ShowForm = () => {
       field: "delete",
       headerName: "Delete",
       cellRenderer: deleteCellRenderer,
+    },
+    {
+      field: "download",
+      headerName: "Download",
+      cellRenderer: downloadCellRenderer,
     },
   ];
 
@@ -248,129 +276,169 @@ const ShowForm = () => {
   return (
     <>
       <ToastContainer />
-      <Box display={"flex"} justifyContent={"center"} gap={"10px"}>
-        <Button
-          variant="outlined"
-          onClick={() => {
-            addRowInTable();
-          }}
+      <Box
+        display={"flex"}
+        flexDirection={"column"}
+        justifyContent={"center"}
+        alignItems={"center"}
+        height={"100vh"}
+      >
+        <Box
+          display={"flex"}
+          justifyContent={"center"}
+          gap={"10px"}
+          paddingTop={10}
         >
-          Add
-        </Button>
-        <Button
-          variant="outlined"
-          onClick={() => {
-            if (!showGrid) {
-              setShowGrid(true);
-              viewAll(setApiResponse, setFilteredApiResponse, setError);
-              setFilteredApiResponse(apiResponse);
-              console.log(error);
-            } else {
-              setShowGrid(false);
-            }
-          }}
-        >
-          {!showGrid ? "View" : "Hide"} All
-        </Button>
-        <TextField
-          size="small"
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            },
-          }}
-          onChange={(e) => {
-            setFilteredApiResponse(() =>
-              [...apiResponse].filter((x) =>
-                x.name.toLowerCase().includes(e.target.value.toLowerCase())
-              )
-            );
-          }}
-        />
-      </Box>
-      {showGrid && (
-        <Grid container justifyContent="center">
-          <Box
-            sx={{
-              margin: 5,
-              border: "1px solid black",
-              padding: 2,
-              display: "flex",
-              flexDirection: "column",
-              gap: "15px",
+          <Button
+            variant="outlined"
+            onClick={() => {
+              addRowInTable();
             }}
           >
-            <table id="customerTable">
-              <thead>
-                <tr>
-                  {colDefs.map((item) => (
-                    <th
-                      key={item.field}
-                      onClick={() => {
-                        sorting(item);
-                      }}
-                      style={{ paddingRight: 10 }}
-                    >
-                      <Box
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {item.headerName}{" "}
-                        {sortOrder.name == item.field ? (
-                          sortOrder.sort == "asc" ? (
-                            <ArrowUpward />
-                          ) : sortOrder.sort == "desc" ? (
-                            <ArrowDownward />
-                          ) : (
-                            ""
-                          )
-                        ) : (
-                          ""
-                        )}
-                      </Box>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredApiResponse.slice(startIndex, endIndex).map((item) => (
-                  <>
+            Add
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              if (!showGrid) {
+                setShowGrid(true);
+                viewAll(setApiResponse, setFilteredApiResponse, setError);
+                setFilteredApiResponse(apiResponse);
+                console.log(error);
+              } else {
+                setShowGrid(false);
+              }
+            }}
+          >
+            {!showGrid ? "View" : "Hide"} All
+          </Button>
+          <CustomizedMenus
+            showGrid={!showGrid}
+            setFileUrl={setFileUrl}
+            data={apiResponse}
+          />
+          <TextField
+            size="small"
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              },
+            }}
+            onChange={(e) => {
+              setFilteredApiResponse(() =>
+                [...apiResponse].filter((x) =>
+                  x.name.toLowerCase().includes(e.target.value.toLowerCase())
+                )
+              );
+            }}
+          />
+        </Box>
+        <Box
+          display={"flex"}
+          alignItems={"center"}
+          flexGrow={1}
+          flexDirection={"column"}
+        >
+          {showGrid && (
+            <Grid container justifyContent="center">
+              <Box
+                sx={{
+                  margin: 5,
+                  border: "1px solid black",
+                  padding: 2,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "15px",
+                }}
+              >
+                <table id="customerTable">
+                  <thead>
                     <tr>
-                      {colDefs.map((col) => {
-                        return (
-                          <AddTableData
-                            column={col}
-                            item={item}
-                            setApiResponse={setApiResponse}
-                            apiResponse={apiResponse}
-                            setFilteredApiResponse={setFilteredApiResponse}
-                          />
-                        );
-                      })}
+                      {colDefs.map((item) => (
+                        <th
+                          key={item.field}
+                          onClick={() => {
+                            sorting(item);
+                          }}
+                          style={{ paddingRight: 10 }}
+                        >
+                          <Box
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {item.headerName}{" "}
+                            {sortOrder.name == item.field ? (
+                              sortOrder.sort == "asc" ? (
+                                <ArrowUpward />
+                              ) : sortOrder.sort == "desc" ? (
+                                <ArrowDownward />
+                              ) : (
+                                ""
+                              )
+                            ) : (
+                              ""
+                            )}
+                          </Box>
+                        </th>
+                      ))}
                     </tr>
-                  </>
-                ))}
-              </tbody>
-            </table>
-            <Pagination
-              recordsCount={filteredApiResponse.length}
-              startIndex={startIndex}
-              setStartIndex={setStartIndex}
-              endIndex={endIndex}
-              setEndIndex={setEndIndex}
-              selectedCount={selectedCount}
-              setSelectedCount={setSelectedCount}
-            ></Pagination>
-          </Box>
-        </Grid>
-      )}
+                  </thead>
+                  <tbody>
+                    {filteredApiResponse
+                      .slice(startIndex, endIndex)
+                      .map((item) => (
+                        <>
+                          <tr>
+                            {colDefs.map((col) => {
+                              return (
+                                <AddTableData
+                                  column={col}
+                                  item={item}
+                                  setApiResponse={setApiResponse}
+                                  apiResponse={apiResponse}
+                                  setFilteredApiResponse={
+                                    setFilteredApiResponse
+                                  }
+                                />
+                              );
+                            })}
+                          </tr>
+                        </>
+                      ))}
+                  </tbody>
+                </table>
+                <Pagination
+                  recordsCount={filteredApiResponse.length}
+                  startIndex={startIndex}
+                  setStartIndex={setStartIndex}
+                  endIndex={endIndex}
+                  setEndIndex={setEndIndex}
+                  selectedCount={selectedCount}
+                  setSelectedCount={setSelectedCount}
+                ></Pagination>
+              </Box>
+            </Grid>
+          )}
+          {/* <div style={{ overflow: "hidden" }}> */}
+          <iframe
+            src={fileUrl}
+            style={{
+              width: "500px",
+              height: "500px",
+              border: "none",
+              overflow: "hidden",
+            }}
+          />
+          {/* </div> */}
+        </Box>
+      </Box>
     </>
   );
 };

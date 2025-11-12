@@ -37,9 +37,7 @@ function SignalRComponent() {
 
   // Function to call the server-side method
   const invokeServerMethod = () => {
-    console.log("test");
     if (connection) {
-      console.log("test1");
       try {
         var x = connection.invoke("SendOffersToUser", ["dfvcfv"]);
         console.log(x);
@@ -58,7 +56,9 @@ function SignalRComponent() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             // body: JSON.stringify({ user: "API", text: "Hello from API!" }),
-          }).then((t) => setMessages([t]));
+          })
+            .then((response) => response.json)
+            .then((t) => setMessages([t]));
         }}
       >
         Send Message via API

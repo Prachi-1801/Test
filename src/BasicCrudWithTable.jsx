@@ -52,8 +52,6 @@ export default function ShowForm() {
         address: "",
       },
     ]);
-
-    console.log(apiResponse);
   }
 
   function handleNameChange(e, index) {
