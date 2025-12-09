@@ -1,21 +1,29 @@
-// import CalculateEMI from "./CalculateEMI";
-// import ShowForm from "./BasicCrudWithTable";
-// import ShowForm from "./BasicCrud";
-import ShowForm from "./Test";
-import SignalRComponent from "./Chat";
+import ChatComponent from "./Chat";
 import LoginForm from "./Login";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import CustomizedMenus from "./DownloadButton";
-import { StyledEngineProvider } from "@mui/material/styles";
+import "./App.css";
+import { useState } from "react";
+import { UserDetailsContext, UserNamesContext } from "./context";
+import Connection from "./Connection";
 
 function App() {
+  const [userDetails, setUserDetails] = useState({
+    Username: "",
+    Password: "",
+  });
+  const [usernames, setUsernames] = useState([]);
+
   return (
     <>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<LoginForm />} />
-          <Route path="/test" element={<ShowForm />} />
-          {/* <Route
+      <Connection>
+        <UserDetailsContext value={{ userDetails, setUserDetails }}>
+          <UserNamesContext value={{ usernames, setUsernames }}>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<LoginForm />} />
+                {/* <Route path="/test" element={<ShowForm />} /> */}
+                <Route path="/chat" element={<ChatComponent />} />
+                {/* <Route
             path="/test"
             element={
               <StyledEngineProvider injectFirst>
@@ -23,8 +31,11 @@ function App() {
               </StyledEngineProvider>
             }
           /> */}
-        </Routes>
-      </BrowserRouter>
+              </Routes>
+            </BrowserRouter>
+          </UserNamesContext>
+        </UserDetailsContext>
+      </Connection>
     </>
   );
   // return <LoginForm />;

@@ -273,6 +273,7 @@ const ShowForm = () => {
       );
     }
   }
+
   return (
     <>
       <ToastContainer />
@@ -421,12 +422,11 @@ const ShowForm = () => {
                   endIndex={endIndex}
                   setEndIndex={setEndIndex}
                   selectedCount={selectedCount}
-                  setSelectedCount={setSelectedCount}
+                  setSelectedCount={setSelectedCount} 
                 ></Pagination>
               </Box>
             </Grid>
           )}
-          {/* <div style={{ overflow: "hidden" }}> */}
           <iframe
             src={fileUrl}
             style={{
@@ -436,7 +436,6 @@ const ShowForm = () => {
               overflow: "hidden",
             }}
           />
-          {/* </div> */}
         </Box>
       </Box>
     </>

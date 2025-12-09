@@ -1,5 +1,5 @@
 import { Box, Button, TextField, Typography } from "@mui/material";
-import { useState } from "react";
+import { useState, useContext, useEffect } from "react";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import InputLabel from "@mui/material/InputLabel";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -8,26 +8,40 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import FormControl from "@mui/material/FormControl";
 import { useNavigate } from "react-router-dom";
+import {
+  UserDetailsContext,
+  ConnectionContext,
+  UserNamesContext,
+} from "./context";
 
 const LoginForm = () => {
   const navigate = useNavigate();
 
-  const [userDetails, setUserDetails] = useState({
-    Username: "",
-    Password: "",
-  });
+  const { userDetails, setUserDetails } = useContext(UserDetailsContext);
+  const connection = useContext(ConnectionContext);
+  const { setUsernames } = useContext(UserNamesContext);
 
-  const [showPassword, setShowPassword] = useState(false);
+  useEffect(() => {
+    if (connection) {
+      connection.on("ReceiveUser", (users) => {
+        setUsernames(users.result);
+      });
+    }
+  }, [connection]);
 
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
+  // const userContext = useContext(userDetails);
 
-  const handleMouseDownPassword = (event) => {
-    event.preventDefault();
-  };
+  // const [showPassword, setShowPassword] = useState(false);
 
-  const handleMouseUpPassword = (event) => {
-    event.preventDefault();
-  };
+  // const handleClickShowPassword = () => setShowPassword((show) => !show);
+
+  // const handleMouseDownPassword = (event) => {
+  //   event.preventDefault();
+  // };
+
+  // const handleMouseUpPassword = (event) => {
+  //   event.preventDefault();
+  // };
 
   return (
     <>
@@ -62,6 +76,7 @@ const LoginForm = () => {
             }}
           >
             <TextField
+              error={userDetails.Username.length <= 0}
               size="small"
               id="outlined-basic"
               label="UserName"
@@ -70,7 +85,7 @@ const LoginForm = () => {
                 setUserDetails((u) => ({ ...u, Username: e.target.value }));
               }}
             />
-            <FormControl size="small" variant="outlined">
+            {/* <FormControl size="small" variant="outlined">
               <InputLabel htmlFor="outlined-adornment-password">
                 Password
               </InputLabel>
@@ -96,10 +111,11 @@ const LoginForm = () => {
                 }
                 onChange={(e) => {
                   setUserDetails((u) => ({ ...u, Password: e.target.value }));
+                  console.log(userDetails);
                 }}
                 label="Password"
               />
-            </FormControl>
+            </FormControl> */}
             {/* <TextField
               size="small"
               id="outlined-basic"
@@ -112,8 +128,9 @@ const LoginForm = () => {
           </Box>
           <Button
             variant="outlined"
-            onClick={() => {
-              navigate("/test");
+            onClick={async () => {
+              await connection.invoke("AddUser", userDetails.Username);
+              navigate("/chat");
             }}
           >
             Login

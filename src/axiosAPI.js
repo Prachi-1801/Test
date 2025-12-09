@@ -19,6 +19,7 @@ export const viewAll = async (
 ) => {
   try {
     // Replace with your .NET API endpoint
+    console.log("URL:", baseQuery + "/Customer/GetCustomers");
     const response = await axios.get(baseQuery + "/Customer/GetCustomers");
     response.data.Result.forEach((element, index) => {
       element["index"] = index + 1;

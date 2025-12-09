@@ -1,0 +1,16 @@
+.avatar-circle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 50px; /* Adjust size as needed */
+  height: 50px; /* Adjust size as needed */
+  border-radius: 50%; /* Makes it a perfect circle */
+  background-color: #007bff; /* Example background color */
+  color: white; /* Example text color */
+  font-size: 24px; /* Adjust font size as needed */
+  font-weight: bold;
+}
+
+.avatar-letter {
+  /* No specific styles needed here unless you want to override parent styles */
+}

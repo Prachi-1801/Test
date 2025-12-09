@@ -8,6 +8,8 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import GridOnIcon from "@mui/icons-material/GridOn";
 import generateTablePdf, { getTableDocDefinition } from "./DownloadPdf";
+import { Workbook } from "exceljs";
+import { saveAs } from "file-saver";
 
 const StyledMenu = styled((props) => (
   <Menu
@@ -78,6 +80,27 @@ export default function CustomizedMenus({ showGrid, setFileUrl, data }) {
       setFileUrl(url);
     });
   };
+
+  const handleExcel = async (data) => {
+    var workbook = new Workbook();
+    const worksheet = workbook.addWorksheet("Test");
+    worksheet.columns = [
+      { header: "Name", key: "name" },
+      { header: "Email", key: "email" },
+      { header: "Address", key: "address" },
+      { header: "Contact", key: "contact", width: 11 },
+      { header: "BirthDate", key: "birthDate" },
+      { header: "Nominee", key: "nominee" },
+    ];
+    worksheet.getColumn("birthDate").numFmt = "yyyy-mm-dd";
+    data.forEach((item) => worksheet.addRow(item));
+    const bufferData = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([bufferData], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    saveAs(blob, "Test.xlsx");
+  };
+
   return (
     <div>
       <Button
@@ -114,7 +137,13 @@ export default function CustomizedMenus({ showGrid, setFileUrl, data }) {
           PDF
         </MenuItem>
         <Divider sx={{ my: 0.5 }} />
-        <MenuItem onClick={handleClose} disableRipple>
+        <MenuItem
+          onClick={() => {
+            handleClose();
+            handleExcel(data);
+          }}
+          disableRipple
+        >
           <GridOnIcon />
           EXCEL
         </MenuItem>

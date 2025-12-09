@@ -1,114 +1,142 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import * as signalR from "@microsoft/signalr";
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+  Box,
+  Grid,
+  Popover,
+  TextField,
+} from "@mui/material";
+import {
+  UserDetailsContext,
+  ConnectionContext,
+  UserNamesContext,
+} from "./context";
+import AvatarInitial from "./AvatarInitial";
 
-function SignalRComponent() {
-  const [connection, setConnection] = useState(null);
+function ChatComponent() {
+  const { userDetails } = useContext(UserDetailsContext);
+  const { usernames } = useContext(UserNamesContext);
+  const connection = useContext(ConnectionContext);
+
+  const [openStartChatPopover, setOpenStartChatPopover] = useState(null);
+  const [currentUser, setCurrentUser] = useState("");
   const [messages, setMessages] = useState([]);
 
-  // Set up the SignalR connection
-  useEffect(() => {
-    const newConnection = new signalR.HubConnectionBuilder()
-      .withUrl("https://localhost:7173/chatHub", {
-        skipNegotiation: true,
-        transport: signalR.HttpTransportType.WebSockets,
-      }) // Replace with your hub URL
-      .withAutomaticReconnect()
-      .build();
-
-    setConnection(newConnection);
-  }, []);
-
-  // Handle connection and define server-to-client handlers
-  useEffect(() => {
+  const handleClickStartChatPopover = async (event) => {
+    setOpenStartChatPopover(event.currentTarget);
     if (connection) {
-      connection
-        .start()
-        .then(() => {
-          console.log("Connected to SignalR hub");
-
-          // Define method to receive messages from the hub
-          connection.on("ReceiveMessage", (message) => {
-            setMessages((prevMessages) => [...prevMessages, message]);
-          });
-        })
-        .catch((err) => console.error("SignalR connection error: ", err));
-    }
-  }, [connection]);
-
-  // Function to call the server-side method
-  const invokeServerMethod = () => {
-    if (connection) {
-      try {
-        var x = connection.invoke("SendOffersToUser", ["dfvcfv"]);
-        console.log(x);
-      } catch (err) {
-        console.error("Error invoking server method:", err);
-      }
+      await connection.invoke("GetUsers");
     }
   };
 
-  return (
-    <div>
-      <h1>SignalR Example</h1>
-      <button
-        onClick={() => {
-          fetch("https://localhost:7173/api/Chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            // body: JSON.stringify({ user: "API", text: "Hello from API!" }),
-          })
-            .then((response) => response.json)
-            .then((t) => setMessages([t]));
-        }}
-      >
-        Send Message via API
-      </button>
-      <button onClick={invokeServerMethod}>Invoke Server API</button>
+  const handleCloseStartChatPopover = () => {
+    setOpenStartChatPopover(null);
+  };
 
-      <h2>Received Messages:</h2>
-      <ul>
-        {messages.map((message, index) => (
-          <li key={index}>{message}</li>
-        ))}
-      </ul>
-    </div>
+  const open = Boolean(openStartChatPopover);
+  const id = open ? "start-chat" : undefined;
+
+  return (
+    <>
+      <Box display={"flex"} flexDirection={"column"}>
+        <Box justifyItems={"right"}>
+          <AvatarInitial initial={userDetails.Username.slice(0, 1)} />
+        </Box>
+        <Box height={"100vh"} width={"100%"}>
+          <Grid container height={"100%"}>
+            <Grid size={3} borderRight={"1px solid #e5e5e5"} p={2}>
+              <Grid container>
+                <Button
+                  variant="contained"
+                  sx={{ textTransform: "capitalize" }}
+                  onClick={handleClickStartChatPopover}
+                >
+                  New Chat
+                </Button>
+                <Popover
+                  id={id}
+                  open={open}
+                  anchorEl={openStartChatPopover}
+                  onClose={handleCloseStartChatPopover}
+                  anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "left",
+                  }}
+                  slotProps={{
+                    paper: {
+                      sx: {
+                        p: 2,
+                        minWidth: "250px",
+                      },
+                    },
+                  }}
+                >
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Select people to start chat</InputLabel>
+                    <Select
+                      size="small"
+                      label="Select people to start chat"
+                      onChange={(e) => {
+                        setCurrentUser(e.target.value);
+                      }}
+                    >
+                      {usernames?.length > 0 ? (
+                        usernames?.map((user) => {
+                          if (user != userDetails.Username)
+                            return (
+                              <MenuItem value={user} key={user}>
+                                {user}
+                              </MenuItem>
+                            );
+                        })
+                      ) : (
+                        <MenuItem value={""}>No user available</MenuItem>
+                      )}
+                    </Select>
+                  </FormControl>
+                  <Grid container pt={1} justifyContent={"end"}>
+                    <Button
+                      variant="contained"
+                      sx={{ textTransform: "capitalize" }}
+                      onClick={handleClickStartChatPopover}
+                    >
+                      Start Chat
+                    </Button>
+                  </Grid>
+                </Popover>
+              </Grid>
+            </Grid>
+            <Grid size={9}>
+              {currentUser && (
+                <Box
+                  display={"flex"}
+                  flexDirection={"column"}
+                  justifyContent={"space-between"}
+                  gap={10}
+                >
+                  <Box
+                    display={"flex"}
+                    flexDirection={"row"}
+                    alignItems={"center"}
+                    gap={1}
+                  >
+                    <AvatarInitial initial={currentUser.slice(0, 1)} />
+                    {currentUser}
+                  </Box>
+                  <TextField id="outlined-basic" variant="outlined" />
+                </Box>
+              )}
+            </Grid>
+          </Grid>
+        </Box>
+      </Box>
+    </>
   );
 }
 
-export default SignalRComponent;
-
-// import * as signalR from "@microsoft/signalr";
-
-// const connection = new signalR.HubConnectionBuilder()
-//   .withUrl("https://localhost:7173/chatHub", {
-//     skipNegotiation: true,
-//     transport: signalR.HttpTransportType.WebSockets,
-//   })
-//   .build();
-
-// const Chat = () => {
-//   testConnection();
-//   //   console.log(sendMessage());
-// };
-
-// const testConnection = async () => {
-//   connection.on("ReceiveMessage");
-//   connection
-//     .start()
-//     .then(() => {
-//       console.log("Connected to SignalR hub");
-//     })
-//     .catch((err) => console.error("Error connecting to hub:", err));
-// };
-
-// // const sendMessage = async () => {
-// //   if (connection) {
-// //     try {
-// //       await connection.invoke("SendOffersToUser"); // "SendMessage" is a method on your hub
-// //     } catch (e) {
-// //       console.error("Error invoking SendMessage: ", e);
-// //     }
-// //   }
-// // };
-
-// export default Chat;
+export default ChatComponent;
