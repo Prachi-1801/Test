@@ -8,8 +8,4 @@ import { BrowserRouter } from "react-router-dom";
 // Register all Community features
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+createRoot(document.getElementById("root")).render(<App />);

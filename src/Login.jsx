@@ -24,7 +24,7 @@ const LoginForm = () => {
   useEffect(() => {
     if (connection) {
       connection.on("ReceiveUser", (users) => {
-        setUsernames(users.result);
+        setUsernames(users);
       });
     }
   }, [connection]);
@@ -130,6 +130,8 @@ const LoginForm = () => {
             variant="outlined"
             onClick={async () => {
               await connection.invoke("AddUser", userDetails.Username);
+              var connectionId = await connection.invoke("GetConnectionId");
+              setUserDetails((u) => ({ ...u, UserId: connectionId }));
               navigate("/chat");
             }}
           >

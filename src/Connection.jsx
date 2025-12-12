@@ -27,9 +27,6 @@ const Connection = ({ children }) => {
         .catch((e) => console.log("Connection failed:", e));
     }
 
-    // return () => {
-    //   connection.stop();
-    // };
   }, [connection]);
 
   return (

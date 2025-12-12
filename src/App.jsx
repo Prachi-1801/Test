@@ -10,8 +10,9 @@ function App() {
   const [userDetails, setUserDetails] = useState({
     Username: "",
     Password: "",
+    UserId: "",
   });
-  const [usernames, setUsernames] = useState([]);
+  const [usernames, setUsernames] = useState({});
 
   return (
     <>
