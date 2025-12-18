@@ -19,6 +19,7 @@ import {
 import AvatarInitial from "./AvatarInitial";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import Tooltip from "@mui/material/Tooltip";
+import Divider from "@mui/material/Divider";
 
 function ChatComponent() {
   const { userDetails } = useContext(UserDetailsContext);
@@ -26,39 +27,22 @@ function ChatComponent() {
   const connection = useContext(ConnectionContext);
 
   const [openStartChatPopover, setOpenStartChatPopover] = useState(null);
+  const [selectedCurrentUser, setSelectedCurrentUser] = useState("");
   const [currentUser, setCurrentUser] = useState("");
-  const [messages, setMessages] = useState([
-    { User: "", Message: "", SentTo: "", SentTime: "" },
-  ]);
+  const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState([]);
 
   useEffect(() => {
-    console.log("Messages", messages);
-  }, [messages]);
-
-  useEffect(() => {
     if (connection) {
-      connection.on("ReceiveMessage", (user, message) => {
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { User: user, Message: message, SentTo: "All", SentTime: new Date() },
-        ]);
-      });
-
       connection.on("ReceiveUserMessage", (userId, connectionId, message) => {
-        console.log(
-          "UserId: ",
-          userDetails.UserId,
-          "ConnectionId: ",
-          connectionId
-        );
-
         setMessages((prevMessages) => [
           ...prevMessages,
           {
             User: userId,
+            UserName: usernames[userId],
             Message: message,
             SentTo: connectionId,
+            SentName: usernames[connectionId],
             SentTime: new Date(),
           },
         ]);
@@ -66,11 +50,17 @@ function ChatComponent() {
     }
   }, [connection]);
 
-  const handleClickStartChatPopover = async (event) => {
+  const handleClickNewChatPopover = async (event) => {
     setOpenStartChatPopover(event.currentTarget);
     if (connection) {
       await connection.invoke("GetUsers");
     }
+  };
+
+  const handleClickStartChatPopover = () => {
+    setCurrentUser(selectedCurrentUser);
+    handleCloseStartChatPopover();
+    setSelectedCurrentUser("");
   };
 
   const handleCloseStartChatPopover = () => {
@@ -79,17 +69,32 @@ function ChatComponent() {
 
   const sendMessage = async () => {
     if (connection) {
-      if (currentUser == "All") {
-        await connection.invoke("SendMessage", userDetails.UserId, message);
-      } else {
-        await connection.invoke(
-          "SendMessageToUser",
-          userDetails.UserId,
-          currentUser,
-          message
-        );
-      }
+      // if (currentUser == "All") {
+      //   await connection.invoke("SendMessage", userDetails.UserId, message);
+      // } else {
+      await connection.invoke(
+        "SendMessageToUser",
+        userDetails.UserId,
+        currentUser,
+        message
+      );
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          User: userDetails.UserId,
+          Message: message,
+          SentTo: currentUser,
+          SentTime: new Date(),
+        },
+      ]);
+      // }
       setMessage(() => "");
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      sendMessage(); // Call the send function
     }
   };
 
@@ -100,20 +105,21 @@ function ChatComponent() {
     <>
       <Box height={"100%"} width={"100%"}>
         <Box display={"flex"} flexDirection={"column"}>
-          <Box justifyItems={"right"} margin={1}>
+          <Box justifyItems={"right"} borderBottom={"1px solid #140d0dff"}>
             <Tooltip title={userDetails.Username} placement="bottom">
-              <div>
+              <div style={{ margin: 7 }}>
                 <AvatarInitial initial={userDetails.Username.slice(0, 1)} />
               </div>
             </Tooltip>
           </Box>
+
           <Grid container height={"calc(100vh - 50px)"}>
-            <Grid size={3} borderRight={"1px solid #e5e5e5"} p={2}>
-              <Grid container>
+            <Grid size={3} borderRight={"1px solid #e5e5e5"}>
+              <Grid container p={2}>
                 <Button
                   variant="contained"
                   sx={{ textTransform: "capitalize" }}
-                  onClick={handleClickStartChatPopover}
+                  onClick={handleClickNewChatPopover}
                 >
                   New Chat
                 </Button>
@@ -141,14 +147,9 @@ function ChatComponent() {
                       size="small"
                       label="Select people to start chat"
                       onChange={(e) => {
-                        setCurrentUser(e.target.value);
+                        setSelectedCurrentUser(e.target.value);
                       }}
                     >
-                      {Object.entries(usernames).length > 2 && (
-                        <MenuItem value="All" key="All">
-                          All
-                        </MenuItem>
-                      )}
                       {Object.entries(usernames).length !== 0 ? (
                         Object.entries(usernames)?.map(([key, value]) => {
                           if (key != userDetails.UserId)
@@ -169,6 +170,36 @@ function ChatComponent() {
                     </Button>
                   </Grid>
                 </Popover>
+              </Grid>
+              <Grid marginTop={1}>
+                <Box display={"flex"} flexDirection={"column"}>
+                  {messages
+                    .map((x) => {
+                      if (x.SentTo == userDetails.UserId) {
+                        return x.User;
+                      } else if (x.User == userDetails.UserId) return x.SentTo;
+                    })
+                    .filter((value, index, self) => {
+                      return self.indexOf(value) === index;
+                    })
+                    .map((x) => {
+                      return (
+                        <Box
+                          borderBottom={"1px solid black"}
+                          borderTop={"1px solid black"}
+                          paddingTop={1}
+                          paddingBottom={1}
+                          textAlign={"center"}
+                          fontSize={20}
+                          onClick={() => {
+                            setCurrentUser(x);
+                          }}
+                        >
+                          {usernames[x]}
+                        </Box>
+                      );
+                    })}
+                </Box>
               </Grid>
             </Grid>
             <Grid size={9}>
@@ -200,35 +231,43 @@ function ChatComponent() {
                         flexDirection={"column"}
                       >
                         {messages.map((x) => {
-                          return (
-                            <>
-                              <Box
-                                alignSelf={
-                                  x.User == userDetails.UserId ? "end" : "start"
-                                }
-                              >
-                                <Typography fontSize={12}>
-                                  {x.User == userDetails.UserId
-                                    ? "you"
-                                    : usernames[x.User]}
-                                </Typography>
+                          if (
+                            (x.User == currentUser &&
+                              x.SentTo == userDetails.UserId) ||
+                            (x.User == userDetails.UserId &&
+                              x.SentTo == currentUser)
+                          )
+                            return (
+                              <>
                                 <Box
-                                  sx={{
-                                    display: "inline-block",
-                                    border: "1px solid black",
-                                    padding: 2,
-                                    borderRadius: "16px",
-                                  }}
-                                  // maxWidth={false}
+                                  alignSelf={
+                                    x.User == userDetails.UserId
+                                      ? "end"
+                                      : "start"
+                                  }
                                 >
-                                  {x.User == userDetails.UserId &&
-                                  usernames[x.User] == x.SentTo
-                                    ? x.Message
-                                    : ""}
+                                  <Typography fontSize={12}>
+                                    {x.SentTo == userDetails.UserId ||
+                                    // (x.SentTo == "All" &&
+                                    x.User != userDetails.UserId
+                                      ? usernames[x.User]
+                                      : "you"}
+                                  </Typography>
+                                  <Box
+                                    sx={{
+                                      display: "inline-block",
+                                      border: "1px solid black",
+                                      padding: 2,
+                                      borderRadius: "16px",
+                                    }}
+                                  >
+                                    {x.Message}
+                                    {/* {usernames[userDetails.UserId] ==
+                                    usernames[x.SentTo] && x.Message} */}
+                                  </Box>
                                 </Box>
-                              </Box>
-                            </>
-                          );
+                              </>
+                            );
                         })}
                       </Box>
                     </>
@@ -242,6 +281,7 @@ function ChatComponent() {
                       onChange={(e) => {
                         setMessage(e.target.value);
                       }}
+                      onKeyDown={handleKeyDown}
                     />
                     <SendRoundedIcon
                       fontSize="large"

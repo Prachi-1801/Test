@@ -23,8 +23,10 @@ const LoginForm = () => {
 
   useEffect(() => {
     if (connection) {
-      connection.on("ReceiveUser", (users) => {
-        setUsernames(users);
+      //  setUserDetails((u) => ({ ...u, Username: e.target.value }));
+      connection.on("ReceiveUser", (user) => {
+        setUsernames((users) => ({ ...users, ...user }));
+        // setUsernames(users);
       });
     }
   }, [connection]);
@@ -85,54 +87,16 @@ const LoginForm = () => {
                 setUserDetails((u) => ({ ...u, Username: e.target.value }));
               }}
             />
-            {/* <FormControl size="small" variant="outlined">
-              <InputLabel htmlFor="outlined-adornment-password">
-                Password
-              </InputLabel>
-              <OutlinedInput
-                id="outlined-adornment-password"
-                type={showPassword ? "text" : "password"}
-                endAdornment={
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label={
-                        showPassword
-                          ? "hide the password"
-                          : "display the password"
-                      }
-                      onClick={handleClickShowPassword}
-                      onMouseDown={handleMouseDownPassword}
-                      onMouseUp={handleMouseUpPassword}
-                      edge="end"
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                }
-                onChange={(e) => {
-                  setUserDetails((u) => ({ ...u, Password: e.target.value }));
-                  console.log(userDetails);
-                }}
-                label="Password"
-              />
-            </FormControl> */}
-            {/* <TextField
-              size="small"
-              id="outlined-basic"
-              label="Password"
-              variant="outlined"
-              onChange={(e) => {
-                setUserDetails((u) => ({ ...u, Password: e.target.value }));
-              }}
-            /> */}
           </Box>
           <Button
             variant="outlined"
             onClick={async () => {
-              await connection.invoke("AddUser", userDetails.Username);
-              var connectionId = await connection.invoke("GetConnectionId");
-              setUserDetails((u) => ({ ...u, UserId: connectionId }));
-              navigate("/chat");
+              if (userDetails.Username.length > 0) {
+                await connection.invoke("AddUser", userDetails.Username);
+                var connectionId = await connection.invoke("GetConnectionId");
+                setUserDetails((u) => ({ ...u, UserId: connectionId }));
+                navigate("/chat");
+              }
             }}
           >
             Login
