@@ -1,15 +1,12 @@
 import React, { useEffect, useState, useContext } from "react";
 import {
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Button,
   Box,
   Grid,
   Popover,
   TextField,
   Typography,
+  Autocomplete,
 } from "@mui/material";
 import {
   UserDetailsContext,
@@ -19,7 +16,6 @@ import {
 import AvatarInitial from "./AvatarInitial";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import Tooltip from "@mui/material/Tooltip";
-import Divider from "@mui/material/Divider";
 
 function ChatComponent() {
   const { userDetails } = useContext(UserDetailsContext);
@@ -69,9 +65,6 @@ function ChatComponent() {
 
   const sendMessage = async () => {
     if (connection) {
-      // if (currentUser == "All") {
-      //   await connection.invoke("SendMessage", userDetails.UserId, message);
-      // } else {
       await connection.invoke(
         "SendMessageToUser",
         userDetails.UserId,
@@ -96,6 +89,13 @@ function ChatComponent() {
     if (event.key === "Enter") {
       sendMessage(); // Call the send function
     }
+  };
+
+  const handleAutocompleteChange = (event, value) => {
+    if (value.length == 1) {
+      setCurrentUser(value[0]);
+    }
+    console.log("VALUES: ", value);
   };
 
   const open = Boolean(openStartChatPopover);
@@ -141,7 +141,23 @@ function ChatComponent() {
                     },
                   }}
                 >
-                  <FormControl fullWidth size="small">
+                  <Autocomplete
+                    multiple
+                    id="tags-outlined"
+                    options={Object.entries(usernames).filter(
+                      ([key]) => key !== userDetails.UserId
+                    )}
+                    onChange={handleAutocompleteChange}
+                    getOptionLabel={([_, value]) => value}
+                    filterSelectedOptions
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Select people to start chat"
+                      />
+                    )}
+                  />
+                  {/* <FormControl fullWidth size="small">
                     <InputLabel>Select people to start chat</InputLabel>
                     <Select
                       size="small"
@@ -159,7 +175,7 @@ function ChatComponent() {
                         <MenuItem value={""}>No user available</MenuItem>
                       )}
                     </Select>
-                  </FormControl>
+                  </FormControl> */}
                   <Grid container pt={1} justifyContent={"end"}>
                     <Button
                       variant="contained"
