@@ -1,31 +1,24 @@
 import { Box, Button, TextField, Typography } from "@mui/material";
-import { useState, useContext, useEffect } from "react";
-import OutlinedInput from "@mui/material/OutlinedInput";
-import InputLabel from "@mui/material/InputLabel";
-import InputAdornment from "@mui/material/InputAdornment";
-import IconButton from "@mui/material/IconButton";
-import Visibility from "@mui/icons-material/Visibility";
-import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import FormControl from "@mui/material/FormControl";
+import { useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  UserDetailsContext,
-  ConnectionContext,
-  UserNamesContext,
-} from "./context";
+import { UserDetailsContext, ConnectionContext } from "./context";
 
 const LoginForm = () => {
   const navigate = useNavigate();
 
   const { userDetails, setUserDetails } = useContext(UserDetailsContext);
   const connection = useContext(ConnectionContext);
-  const { setUsernames } = useContext(UserNamesContext);
+  // const { setUsernames } = useContext(UserNamesContext);
 
   useEffect(() => {
     if (connection) {
       //  setUserDetails((u) => ({ ...u, Username: e.target.value }));
       connection.on("ReceiveUser", (user) => {
-        setUsernames((users) => ({ ...users, ...user }));
+        setUserDetails((item) => ({
+          ...item,
+          Usernames: { ...user },
+        }));
+        // setUsernames((users) => ({ ...users, ...user }));
         // setUsernames(users);
       });
     }

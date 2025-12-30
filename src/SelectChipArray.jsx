@@ -1,16 +1,5 @@
 import { Autocomplete, TextField } from "@mui/material";
 
-const ITEM_HEIGHT = 48;
-const ITEM_PADDING_TOP = 8;
-const MenuProps = {
-  PaperProps: {
-    style: {
-      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-      width: 250,
-    },
-  },
-};
-
 const names = [
   { key: 1, label: "Oliver Hansen" },
   { key: 2, label: "Van Henry" },
@@ -27,7 +16,6 @@ const names = [
 export default function MultipleSelectChip() {
   return (
     <Autocomplete
-      // disableCloseOnSelect
       multiple
       id="tags-outlined"
       options={names}

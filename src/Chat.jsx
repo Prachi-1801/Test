@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext } from "react";
 import {
   Button,
   Box,
@@ -7,26 +7,39 @@ import {
   TextField,
   Typography,
   Autocomplete,
+  Tooltip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Select,
+  FormControl,
+  InputLabel,
+  MenuItem,
 } from "@mui/material";
-import {
-  UserDetailsContext,
-  ConnectionContext,
-  UserNamesContext,
-} from "./context";
+import { UserDetailsContext, ConnectionContext } from "./context";
 import AvatarInitial from "./AvatarInitial";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
-import Tooltip from "@mui/material/Tooltip";
 
 function ChatComponent() {
-  const { userDetails } = useContext(UserDetailsContext);
-  const { usernames } = useContext(UserNamesContext);
+  const { userDetails, setUserDetails } = useContext(UserDetailsContext);
   const connection = useContext(ConnectionContext);
 
   const [openStartChatPopover, setOpenStartChatPopover] = useState(null);
-  const [selectedCurrentUser, setSelectedCurrentUser] = useState("");
-  const [currentUser, setCurrentUser] = useState("");
+  const [selectedCurrentUsers, setSelectedCurrentUsers] = useState([]);
+  // const [currentUser, setCurrentUser] = useState(null);
+  // const [currentGroup, setCurrentGroup] = useState(null);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState([]);
+  const [openGroupPopup, setOpenGroupPopup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [currentChat, setCurrentChat] = useState({ Id: null, IsGroup: false });
+
+  useEffect(() => {
+    console.log("Messages: ", messages);
+  }, [messages]);
 
   useEffect(() => {
     if (connection) {
@@ -35,28 +48,61 @@ function ChatComponent() {
           ...prevMessages,
           {
             User: userId,
-            UserName: usernames[userId],
+            UserName: userDetails.Usernames[userId],
             Message: message,
             SentTo: connectionId,
-            SentName: usernames[connectionId],
+            SentName: userDetails.Usernames[connectionId],
             SentTime: new Date(),
           },
         ]);
+      });
+
+      connection.on("ReceiveGroupMessage", (userId, message, group) => {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            User: userId,
+            UserName: userDetails.Usernames[userId],
+            SentTo: group,
+            SentName: "Group",
+            SentTime: new Date(),
+            Message: message,
+          },
+        ]);
+      });
+
+      connection.on("ReceiveGroupName", (groupName, groupUsers) => {
+        setUserDetails((user) => ({
+          ...user,
+          Groupnames: [
+            ...user.Groupnames,
+            {
+              GroupName: groupName,
+              Users: groupUsers,
+            },
+          ],
+        }));
       });
     }
   }, [connection]);
 
   const handleClickNewChatPopover = async (event) => {
     setOpenStartChatPopover(event.currentTarget);
-    if (connection) {
-      await connection.invoke("GetUsers");
-    }
   };
 
   const handleClickStartChatPopover = () => {
-    setCurrentUser(selectedCurrentUser);
+    if (selectedCurrentUsers.length == 1) {
+      setCurrentChat({ Id: selectedCurrentUsers[0]?.id, IsGroup: false });
+      // setCurrentGroup(null);
+      // setCurrentUser(selectedCurrentUsers[0]?.id);
+    } else if (selectedCurrentUsers.length > 1) {
+      handleGroupPopupClickOpen();
+    } else if (selectedGroup != "") {
+      setCurrentChat({ Id: selectedGroup, IsGroup: true });
+      // setCurrentGroup(selectedGroup);
+      setSelectedGroup(null);
+    }
     handleCloseStartChatPopover();
-    setSelectedCurrentUser("");
   };
 
   const handleCloseStartChatPopover = () => {
@@ -64,38 +110,72 @@ function ChatComponent() {
   };
 
   const sendMessage = async () => {
-    if (connection) {
-      await connection.invoke(
-        "SendMessageToUser",
-        userDetails.UserId,
-        currentUser,
-        message
-      );
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          User: userDetails.UserId,
-          Message: message,
-          SentTo: currentUser,
-          SentTime: new Date(),
-        },
-      ]);
-      // }
+    if (connection && currentChat.Id != null) {
+      if (!currentChat.IsGroup) {
+        await connection.invoke(
+          "SendMessageToUser",
+          userDetails.UserId,
+          currentChat.Id,
+          message
+        );
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            User: userDetails.UserId,
+            Message: message,
+            SentTo: currentChat.Id,
+            SentTime: new Date(),
+          },
+        ]);
+      } else if (currentChat.IsGroup) {
+        await connection.invoke("SendMessageToGroup", currentChat.Id, message);
+      }
       setMessage(() => "");
     }
   };
 
   const handleKeyDown = (event) => {
     if (event.key === "Enter") {
-      sendMessage(); // Call the send function
+      sendMessage();
     }
   };
 
   const handleAutocompleteChange = (event, value) => {
-    if (value.length == 1) {
-      setCurrentUser(value[0]);
+    if (value.length != 0) {
+      setSelectedCurrentUsers(value);
     }
-    console.log("VALUES: ", value);
+  };
+
+  const handleGroupPopupClickOpen = () => {
+    setOpenGroupPopup(true);
+  };
+
+  const handleGroupPopupClose = () => {
+    setOpenGroupPopup(false);
+    setSelectedCurrentUsers([]);
+    setNewGroupName("");
+  };
+
+  const handleGroupPopupSubmit = async () => {
+    if (connection) {
+      let groupUsers = selectedCurrentUsers.map((user) => user.id);
+      await connection.invoke("JoinGroup", newGroupName, groupUsers);
+      setCurrentChat({ Id: newGroupName, IsGroup: true });
+      // setCurrentGroup(newGroupName);
+      setNewGroupName(null);
+    }
+    handleGroupPopupClose();
+  };
+
+  const handleGroupPopupInputChange = (event) => {
+    setNewGroupName(event.target.value);
+  };
+
+  const handleGroupChange = (event) => {
+    setSelectedGroup(event.target.value);
+    setSelectedCurrentUsers([]);
+    // setCurrentChat({ Id: null, IsGroup: false });
+    // setCurrentUser(null);
   };
 
   const open = Boolean(openStartChatPopover);
@@ -141,41 +221,61 @@ function ChatComponent() {
                     },
                   }}
                 >
-                  <Autocomplete
-                    multiple
-                    id="tags-outlined"
-                    options={Object.entries(usernames).filter(
-                      ([key]) => key !== userDetails.UserId
-                    )}
-                    onChange={handleAutocompleteChange}
-                    getOptionLabel={([_, value]) => value}
-                    filterSelectedOptions
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Select people to start chat"
-                      />
-                    )}
-                  />
-                  {/* <FormControl fullWidth size="small">
-                    <InputLabel>Select people to start chat</InputLabel>
-                    <Select
-                      size="small"
-                      label="Select people to start chat"
-                      onChange={(e) => {
-                        setSelectedCurrentUser(e.target.value);
-                      }}
-                    >
-                      {Object.entries(usernames).length !== 0 ? (
-                        Object.entries(usernames)?.map(([key, value]) => {
-                          if (key != userDetails.UserId)
-                            return <MenuItem value={key}>{value}</MenuItem>;
-                        })
-                      ) : (
-                        <MenuItem value={""}>No user available</MenuItem>
+                  <Box
+                    width={"100%"}
+                    display={"flex"}
+                    flexDirection={"column"}
+                    justifyContent={"center"}
+                  >
+                    <Autocomplete
+                      // fullWidth
+                      multiple
+                      id="tags-outlined"
+                      options={Object.entries(userDetails.Usernames)
+                        .filter(([key]) => key !== userDetails.UserId)
+                        .map(([key, value]) => ({ id: key, label: value }))}
+                      onChange={handleAutocompleteChange}
+                      getOptionLabel={(value) => value.label}
+                      isOptionEqualToValue={(option, value) =>
+                        option.id === value.id
+                      }
+                      filterSelectedOptions
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Select people to start chat"
+                        />
                       )}
-                    </Select>
-                  </FormControl> */}
+                    />
+                    <Divider>
+                      <Typography sx={{ fontSize: "12px", color: "gray" }}>
+                        OR
+                      </Typography>
+                    </Divider>
+                    <FormControl sx={{ minWidth: 120 }}>
+                      <InputLabel id="demo-simple-select-helper-label">
+                        Select group to start chat
+                      </InputLabel>
+                      <Select
+                        labelId="demo-simple-select-helper-label"
+                        id="demo-simple-select-helper"
+                        value={selectedGroup}
+                        label="Select group to start chat"
+                        onChange={handleGroupChange}
+                      >
+                        {userDetails.Groupnames?.map((group) => {
+                          return (
+                            <MenuItem
+                              key={group.GroupName}
+                              value={group.GroupName}
+                            >
+                              {group.GroupName}
+                            </MenuItem>
+                          );
+                        })}
+                      </Select>
+                    </FormControl>
+                  </Box>
                   <Grid container pt={1} justifyContent={"end"}>
                     <Button
                       variant="contained"
@@ -194,6 +294,9 @@ function ChatComponent() {
                       if (x.SentTo == userDetails.UserId) {
                         return x.User;
                       } else if (x.User == userDetails.UserId) return x.SentTo;
+                      else if (x.SentName == "Group") {
+                        return x.SentTo;
+                      }
                     })
                     .filter((value, index, self) => {
                       return self.indexOf(value) === index;
@@ -208,10 +311,13 @@ function ChatComponent() {
                           textAlign={"center"}
                           fontSize={20}
                           onClick={() => {
-                            setCurrentUser(x);
+                            if (userDetails.Usernames[x])
+                              setCurrentChat({ Id: x, IsGroup: false });
+                            else setCurrentChat({ Id: x, IsGroup: true });
+                            // setCurrentUser(x);
                           }}
                         >
-                          {usernames[x]}
+                          {userDetails.Usernames[x] || x}
                         </Box>
                       );
                     })}
@@ -219,7 +325,8 @@ function ChatComponent() {
               </Grid>
             </Grid>
             <Grid size={9}>
-              {currentUser && (
+              {/* {(currentUser || currentGroup) && ( */}
+              {currentChat.Id != null && (
                 <Box
                   display={"flex"}
                   flexDirection={"column"}
@@ -233,9 +340,18 @@ function ChatComponent() {
                     gap={1}
                   >
                     <AvatarInitial
-                      initial={usernames[currentUser].slice(0, 1)}
+                      initial={
+                        currentChat.Id != null &&
+                        ((currentChat.IsGroup && currentChat.Id.slice(0, 1)) ||
+                          userDetails.Usernames[currentChat.Id].slice(0, 1))
+                        // (currentGroup && currentGroup.slice(0, 1)) ||
+                        // (currentUser &&
+                        //   userDetails.Usernames[currentUser].slice(0, 1))
+                      }
                     />
-                    {usernames[currentUser]}
+                    {currentChat.Id != null &&
+                      ((currentChat.IsGroup && currentChat.Id) ||
+                        userDetails.Usernames[currentChat.Id])}
                   </Box>
                   {messages.length > 0 && (
                     <>
@@ -247,11 +363,27 @@ function ChatComponent() {
                         flexDirection={"column"}
                       >
                         {messages.map((x) => {
+                          console.log(
+                            "x.User == currentChat.Id ",
+                            x.User == currentChat.Id
+                          );
+                          console.log(
+                            "currentChat.Id != null &&((x.User == currentChat.Id &&!currentChat.IsGroup &&x.SentTo == userDetails.UserId) )",
+                            currentChat.Id != null &&
+                              x.User == currentChat.Id &&
+                              !currentChat.IsGroup &&
+                              x.SentTo == userDetails.UserId //||
+                            // x.User == userDetails.UserId)
+                          );
                           if (
-                            (x.User == currentUser &&
+                            currentChat.Id != null &&
+                            ((x.User == currentChat.Id &&
+                              !currentChat.IsGroup &&
                               x.SentTo == userDetails.UserId) ||
-                            (x.User == userDetails.UserId &&
-                              x.SentTo == currentUser)
+                              (x.User == userDetails.UserId &&
+                                x.SentName != "Group")) //||
+                            // x.SentTo == currentChat.Id) //||
+                            // x.SentTo == currentGroup)
                           )
                             return (
                               <>
@@ -264,9 +396,10 @@ function ChatComponent() {
                                 >
                                   <Typography fontSize={12}>
                                     {x.SentTo == userDetails.UserId ||
-                                    // (x.SentTo == "All" &&
-                                    x.User != userDetails.UserId
-                                      ? usernames[x.User]
+                                    x.User != userDetails.UserId ||
+                                    (currentChat.Id != null &&
+                                      currentChat.IsGroup)
+                                      ? userDetails.Usernames[x.User]
                                       : "you"}
                                   </Typography>
                                   <Box
@@ -278,8 +411,6 @@ function ChatComponent() {
                                     }}
                                   >
                                     {x.Message}
-                                    {/* {usernames[userDetails.UserId] ==
-                                    usernames[x.SentTo] && x.Message} */}
                                   </Box>
                                 </Box>
                               </>
@@ -311,6 +442,32 @@ function ChatComponent() {
           </Grid>
         </Box>
       </Box>
+      <Dialog
+        open={openGroupPopup}
+        onClose={handleGroupPopupClose}
+        slotProps={{ paper: { sx: { minWidth: 445 } } }}
+      >
+        <DialogTitle>Create Group</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus // Automatically focuses the input field when the dialog opens
+            margin="dense"
+            id="name"
+            label="Enter Group Name"
+            type="email"
+            fullWidth
+            variant="standard"
+            value={newGroupName}
+            onChange={handleGroupPopupInputChange}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleGroupPopupClose}>Cancel</Button>
+          <Button onClick={handleGroupPopupSubmit} variant="contained">
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

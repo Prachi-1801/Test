@@ -1,4 +1,3 @@
-import React from "react";
 import "./Models/CSS/AvatarInitial.css";
 
 const AvatarInitial = ({ initial }) => {

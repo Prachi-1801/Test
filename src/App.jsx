@@ -3,29 +3,30 @@ import LoginForm from "./Login";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./App.css";
 import { useState } from "react";
-import { UserDetailsContext, UserNamesContext } from "./context";
+import { UserDetailsContext } from "./context";
 import Connection from "./Connection";
 
 function App() {
   const [userDetails, setUserDetails] = useState({
     Username: "",
-    Password: "",
     UserId: "",
+    Usernames: {},
+    Groupnames: [],
   });
-  const [usernames, setUsernames] = useState();
-  // const [usernames, setUsernames] = useState({ All: "All" });
+  // const [usernames, setUsernames] = useState();
 
   return (
+    // <GroupChat />
     <>
       <Connection>
         <UserDetailsContext value={{ userDetails, setUserDetails }}>
-          <UserNamesContext.Provider value={{ usernames, setUsernames }}>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<LoginForm />} />
-                {/* <Route path="/test" element={<ShowForm />} /> */}
-                <Route path="/chat" element={<ChatComponent />} />
-                {/* <Route
+          {/* <UserNamesContext.Provider value={{ usernames, setUsernames }}> */}
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<LoginForm />} />
+              {/* <Route path="/test" element={<ShowForm />} /> */}
+              <Route path="/chat" element={<ChatComponent />} />
+              {/* <Route
             path="/test"
             element={
               <StyledEngineProvider injectFirst>
@@ -33,9 +34,9 @@ function App() {
               </StyledEngineProvider>
             }
           /> */}
-              </Routes>
-            </BrowserRouter>
-          </UserNamesContext.Provider>
+            </Routes>
+          </BrowserRouter>
+          {/* </UserNamesContext.Provider> */}
         </UserDetailsContext>
       </Connection>
     </>
