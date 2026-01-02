@@ -28,8 +28,6 @@ function ChatComponent() {
 
   const [openStartChatPopover, setOpenStartChatPopover] = useState(null);
   const [selectedCurrentUsers, setSelectedCurrentUsers] = useState([]);
-  // const [currentUser, setCurrentUser] = useState(null);
-  // const [currentGroup, setCurrentGroup] = useState(null);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState([]);
   const [openGroupPopup, setOpenGroupPopup] = useState(false);
@@ -38,8 +36,12 @@ function ChatComponent() {
   const [currentChat, setCurrentChat] = useState({ Id: null, IsGroup: false });
 
   useEffect(() => {
-    console.log("Messages: ", messages);
-  }, [messages]);
+    console.log("GroupUsers: ", group.Users);
+    userDetails.Groupnames?.map((group) => {
+      if (!group.Users.includes(userDetails.UserId))
+        console.log("GroupName: ", group);
+    });
+  }, [userDetails]);
 
   useEffect(() => {
     if (connection) {
@@ -93,13 +95,10 @@ function ChatComponent() {
   const handleClickStartChatPopover = () => {
     if (selectedCurrentUsers.length == 1) {
       setCurrentChat({ Id: selectedCurrentUsers[0]?.id, IsGroup: false });
-      // setCurrentGroup(null);
-      // setCurrentUser(selectedCurrentUsers[0]?.id);
     } else if (selectedCurrentUsers.length > 1) {
       handleGroupPopupClickOpen();
     } else if (selectedGroup != "") {
       setCurrentChat({ Id: selectedGroup, IsGroup: true });
-      // setCurrentGroup(selectedGroup);
       setSelectedGroup(null);
     }
     handleCloseStartChatPopover();
@@ -107,6 +106,8 @@ function ChatComponent() {
 
   const handleCloseStartChatPopover = () => {
     setOpenStartChatPopover(null);
+    // setSelectedCurrentUsers([]);
+    setSelectedGroup(null);
   };
 
   const sendMessage = async () => {
@@ -159,11 +160,27 @@ function ChatComponent() {
   const handleGroupPopupSubmit = async () => {
     if (connection) {
       let groupUsers = selectedCurrentUsers.map((user) => user.id);
-      await connection.invoke("JoinGroup", newGroupName, groupUsers);
+      await connection.invoke(
+        "JoinGroup",
+        newGroupName,
+        userDetails.UserId,
+        groupUsers
+      );
       setCurrentChat({ Id: newGroupName, IsGroup: true });
-      // setCurrentGroup(newGroupName);
       setNewGroupName(null);
     }
+    // setSelectedCurrentUsers([]);
+    handleGroupPopupClose();
+  };
+
+  const handleClickJoinChat = async () => {
+    if (connection) {
+      await connection.invoke("JoinGroup", selectedGroup, null, [
+        userDetails.UserId,
+      ]);
+    }
+    setCurrentChat({ Id: newGroupName, IsGroup: true });
+    setSelectedGroup(null);
     handleGroupPopupClose();
   };
 
@@ -174,8 +191,6 @@ function ChatComponent() {
   const handleGroupChange = (event) => {
     setSelectedGroup(event.target.value);
     setSelectedCurrentUsers([]);
-    // setCurrentChat({ Id: null, IsGroup: false });
-    // setCurrentUser(null);
   };
 
   const open = Boolean(openStartChatPopover);
@@ -228,7 +243,6 @@ function ChatComponent() {
                     justifyContent={"center"}
                   >
                     <Autocomplete
-                      // fullWidth
                       multiple
                       id="tags-outlined"
                       options={Object.entries(userDetails.Usernames)
@@ -264,23 +278,42 @@ function ChatComponent() {
                         onChange={handleGroupChange}
                       >
                         {userDetails.Groupnames?.map((group) => {
-                          return (
-                            <MenuItem
-                              key={group.GroupName}
-                              value={group.GroupName}
-                            >
-                              {group.GroupName}
-                            </MenuItem>
-                          );
+                          if (!group.Users.includes(userDetails.UserId))
+                            return (
+                              <MenuItem
+                                key={group.GroupName}
+                                value={group.GroupName}
+                              >
+                                {group.GroupName}
+                              </MenuItem>
+                            );
                         })}
                       </Select>
                     </FormControl>
                   </Box>
-                  <Grid container pt={1} justifyContent={"end"}>
+                  <Grid
+                    container
+                    pt={1}
+                    display={"flex"}
+                    flexDirection={"row"}
+                    justifyContent={"space-between"}
+                  >
+                    <Button
+                      variant="contained"
+                      sx={{ textTransform: "capitalize" }}
+                      onClick={handleClickJoinChat}
+                      disabled={selectedGroup == null}
+                    >
+                      Join Group
+                    </Button>
                     <Button
                       variant="contained"
                       sx={{ textTransform: "capitalize" }}
                       onClick={handleClickStartChatPopover}
+                      disabled={
+                        selectedCurrentUsers == null ||
+                        selectedCurrentUsers.length == 0
+                      }
                     >
                       Start Chat
                     </Button>
@@ -314,7 +347,6 @@ function ChatComponent() {
                             if (userDetails.Usernames[x])
                               setCurrentChat({ Id: x, IsGroup: false });
                             else setCurrentChat({ Id: x, IsGroup: true });
-                            // setCurrentUser(x);
                           }}
                         >
                           {userDetails.Usernames[x] || x}
@@ -325,7 +357,6 @@ function ChatComponent() {
               </Grid>
             </Grid>
             <Grid size={9}>
-              {/* {(currentUser || currentGroup) && ( */}
               {currentChat.Id != null && (
                 <Box
                   display={"flex"}
@@ -344,9 +375,6 @@ function ChatComponent() {
                         currentChat.Id != null &&
                         ((currentChat.IsGroup && currentChat.Id.slice(0, 1)) ||
                           userDetails.Usernames[currentChat.Id].slice(0, 1))
-                        // (currentGroup && currentGroup.slice(0, 1)) ||
-                        // (currentUser &&
-                        //   userDetails.Usernames[currentUser].slice(0, 1))
                       }
                     />
                     {currentChat.Id != null &&
@@ -363,58 +391,71 @@ function ChatComponent() {
                         flexDirection={"column"}
                       >
                         {messages.map((x) => {
-                          console.log(
-                            "x.User == currentChat.Id ",
-                            x.User == currentChat.Id
-                          );
-                          console.log(
-                            "currentChat.Id != null &&((x.User == currentChat.Id &&!currentChat.IsGroup &&x.SentTo == userDetails.UserId) )",
-                            currentChat.Id != null &&
-                              x.User == currentChat.Id &&
-                              !currentChat.IsGroup &&
-                              x.SentTo == userDetails.UserId //||
-                            // x.User == userDetails.UserId)
-                          );
-                          if (
-                            currentChat.Id != null &&
-                            ((x.User == currentChat.Id &&
-                              !currentChat.IsGroup &&
-                              x.SentTo == userDetails.UserId) ||
-                              (x.User == userDetails.UserId &&
-                                x.SentName != "Group")) //||
-                            // x.SentTo == currentChat.Id) //||
-                            // x.SentTo == currentGroup)
-                          )
-                            return (
-                              <>
-                                <Box
-                                  alignSelf={
-                                    x.User == userDetails.UserId
-                                      ? "end"
-                                      : "start"
-                                  }
-                                >
-                                  <Typography fontSize={12}>
-                                    {x.SentTo == userDetails.UserId ||
-                                    x.User != userDetails.UserId ||
-                                    (currentChat.Id != null &&
-                                      currentChat.IsGroup)
-                                      ? userDetails.Usernames[x.User]
-                                      : "you"}
-                                  </Typography>
+                          if (currentChat.Id != null)
+                            if (
+                              userDetails.Usernames[x.SentTo] &&
+                              ((x.User == currentChat.Id &&
+                                x.SentTo == userDetails.UserId) ||
+                                (x.User == userDetails.UserId &&
+                                  x.SentTo == currentChat.Id))
+                            ) {
+                              return (
+                                <>
                                   <Box
-                                    sx={{
-                                      display: "inline-block",
-                                      border: "1px solid black",
-                                      padding: 2,
-                                      borderRadius: "16px",
-                                    }}
+                                    alignSelf={
+                                      x.User == userDetails.UserId
+                                        ? "end"
+                                        : "start"
+                                    }
                                   >
-                                    {x.Message}
+                                    <Typography fontSize={12}>
+                                      {x.SentTo == userDetails.UserId ||
+                                      x.User != userDetails.UserId
+                                        ? userDetails.Usernames[x.User]
+                                        : "you"}
+                                    </Typography>
+                                    <Box
+                                      sx={{
+                                        display: "inline-block",
+                                        border: "1px solid black",
+                                        padding: 2,
+                                        borderRadius: "16px",
+                                      }}
+                                    >
+                                      {x.Message}
+                                    </Box>
                                   </Box>
-                                </Box>
-                              </>
-                            );
+                                </>
+                              );
+                            } else if (currentChat.Id == x.SentTo) {
+                              return (
+                                <>
+                                  <Box
+                                    alignSelf={
+                                      x.User == userDetails.UserId
+                                        ? "end"
+                                        : "start"
+                                    }
+                                  >
+                                    <Typography fontSize={12}>
+                                      {x.User != userDetails.UserId
+                                        ? userDetails.Usernames[x.User]
+                                        : "you"}
+                                    </Typography>
+                                    <Box
+                                      sx={{
+                                        display: "inline-block",
+                                        border: "1px solid black",
+                                        padding: 2,
+                                        borderRadius: "16px",
+                                      }}
+                                    >
+                                      {x.Message}
+                                    </Box>
+                                  </Box>
+                                </>
+                              );
+                            }
                         })}
                       </Box>
                     </>

@@ -8,35 +8,17 @@ const LoginForm = () => {
 
   const { userDetails, setUserDetails } = useContext(UserDetailsContext);
   const connection = useContext(ConnectionContext);
-  // const { setUsernames } = useContext(UserNamesContext);
 
   useEffect(() => {
     if (connection) {
-      //  setUserDetails((u) => ({ ...u, Username: e.target.value }));
       connection.on("ReceiveUser", (user) => {
         setUserDetails((item) => ({
           ...item,
           Usernames: { ...user },
         }));
-        // setUsernames((users) => ({ ...users, ...user }));
-        // setUsernames(users);
       });
     }
   }, [connection]);
-
-  // const userContext = useContext(userDetails);
-
-  // const [showPassword, setShowPassword] = useState(false);
-
-  // const handleClickShowPassword = () => setShowPassword((show) => !show);
-
-  // const handleMouseDownPassword = (event) => {
-  //   event.preventDefault();
-  // };
-
-  // const handleMouseUpPassword = (event) => {
-  //   event.preventDefault();
-  // };
 
   return (
     <>
@@ -84,7 +66,7 @@ const LoginForm = () => {
           <Button
             variant="outlined"
             onClick={async () => {
-              if (userDetails.Username.length > 0) {
+              if (userDetails.Username.trim().length > 0) {
                 await connection.invoke("AddUser", userDetails.Username);
                 var connectionId = await connection.invoke("GetConnectionId");
                 setUserDetails((u) => ({ ...u, UserId: connectionId }));

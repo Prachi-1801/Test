@@ -13,39 +13,21 @@ function App() {
     Usernames: {},
     Groupnames: [],
   });
-  // const [usernames, setUsernames] = useState();
 
   return (
-    // <GroupChat />
     <>
       <Connection>
         <UserDetailsContext value={{ userDetails, setUserDetails }}>
-          {/* <UserNamesContext.Provider value={{ usernames, setUsernames }}> */}
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<LoginForm />} />
-              {/* <Route path="/test" element={<ShowForm />} /> */}
               <Route path="/chat" element={<ChatComponent />} />
-              {/* <Route
-            path="/test"
-            element={
-              <StyledEngineProvider injectFirst>
-                <CustomizedMenus />
-              </StyledEngineProvider>
-            }
-          /> */}
             </Routes>
           </BrowserRouter>
-          {/* </UserNamesContext.Provider> */}
         </UserDetailsContext>
       </Connection>
     </>
   );
-  // return <LoginForm />;
-  // return <CalculateEMI />;
-  // return <ShowForm />;
-  // return <Chat />;
-  // return <SignalRComponent />;
 }
 
 export default App;
