@@ -36,11 +36,7 @@ function ChatComponent() {
   const [currentChat, setCurrentChat] = useState({ Id: null, IsGroup: false });
 
   useEffect(() => {
-    console.log("GroupUsers: ", group.Users);
-    userDetails.Groupnames?.map((group) => {
-      if (!group.Users.includes(userDetails.UserId))
-        console.log("GroupName: ", group);
-    });
+    console.log("UserDetails:", userDetails);
   }, [userDetails]);
 
   useEffect(() => {
@@ -73,16 +69,18 @@ function ChatComponent() {
         ]);
       });
 
-      connection.on("ReceiveGroupName", (groupName, groupUsers) => {
+      connection.on("ReceiveGroupNames", (groupNames) => {
         setUserDetails((user) => ({
           ...user,
-          Groupnames: [
-            ...user.Groupnames,
-            {
-              GroupName: groupName,
-              Users: groupUsers,
-            },
-          ],
+          Groupnames: Object.entries(groupNames).map(([key, value]) => ({
+            GroupName: key,
+            Users: value,
+          })),
+          // ...(user.Groupnames ?? []),
+          // {
+          //   GroupName: groupName,
+          //   Users: groupUsers,
+          // },
         }));
       });
     }
@@ -277,17 +275,22 @@ function ChatComponent() {
                         label="Select group to start chat"
                         onChange={handleGroupChange}
                       >
-                        {userDetails.Groupnames?.map((group) => {
-                          if (!group.Users.includes(userDetails.UserId))
-                            return (
-                              <MenuItem
-                                key={group.GroupName}
-                                value={group.GroupName}
-                              >
-                                {group.GroupName}
-                              </MenuItem>
-                            );
-                        })}
+                        {userDetails.Groupnames != null &&
+                          userDetails.Groupnames?.map((group) => {
+                            if (
+                              group.Users &&
+                              group.Users.length > 0 &&
+                              !group.Users.includes(userDetails.UserId)
+                            )
+                              return (
+                                <MenuItem
+                                  key={group.GroupName}
+                                  value={group.GroupName}
+                                >
+                                  {group.GroupName}
+                                </MenuItem>
+                              );
+                          })}
                       </Select>
                     </FormControl>
                   </Box>
@@ -381,101 +384,120 @@ function ChatComponent() {
                       ((currentChat.IsGroup && currentChat.Id) ||
                         userDetails.Usernames[currentChat.Id])}
                   </Box>
-                  {messages.length > 0 && (
-                    <>
-                      <Box
-                        display={"flex"}
-                        sx={{
-                          padding: 2,
-                        }}
-                        flexDirection={"column"}
-                      >
-                        {messages.map((x) => {
-                          if (currentChat.Id != null)
-                            if (
-                              userDetails.Usernames[x.SentTo] &&
-                              ((x.User == currentChat.Id &&
-                                x.SentTo == userDetails.UserId) ||
-                                (x.User == userDetails.UserId &&
-                                  x.SentTo == currentChat.Id))
-                            ) {
-                              return (
-                                <>
-                                  <Box
-                                    alignSelf={
-                                      x.User == userDetails.UserId
-                                        ? "end"
-                                        : "start"
-                                    }
-                                  >
-                                    <Typography fontSize={12}>
-                                      {x.SentTo == userDetails.UserId ||
-                                      x.User != userDetails.UserId
-                                        ? userDetails.Usernames[x.User]
-                                        : "you"}
-                                    </Typography>
-                                    <Box
-                                      sx={{
-                                        display: "inline-block",
-                                        border: "1px solid black",
-                                        padding: 2,
-                                        borderRadius: "16px",
-                                      }}
-                                    >
-                                      {x.Message}
-                                    </Box>
-                                  </Box>
-                                </>
-                              );
-                            } else if (currentChat.Id == x.SentTo) {
-                              return (
-                                <>
-                                  <Box
-                                    alignSelf={
-                                      x.User == userDetails.UserId
-                                        ? "end"
-                                        : "start"
-                                    }
-                                  >
-                                    <Typography fontSize={12}>
-                                      {x.User != userDetails.UserId
-                                        ? userDetails.Usernames[x.User]
-                                        : "you"}
-                                    </Typography>
-                                    <Box
-                                      sx={{
-                                        display: "inline-block",
-                                        border: "1px solid black",
-                                        padding: 2,
-                                        borderRadius: "16px",
-                                      }}
-                                    >
-                                      {x.Message}
-                                    </Box>
-                                  </Box>
-                                </>
-                              );
-                            }
-                        })}
-                      </Box>
-                    </>
-                  )}
-                  <Box display={"flex"} flexDirection={"row"} marginBottom={5}>
-                    <TextField
-                      sx={{ flexGrow: 11 }}
-                      id="outlined-basic"
-                      variant="outlined"
-                      value={message}
-                      onChange={(e) => {
-                        setMessage(e.target.value);
+                  <Box>
+                    <Box
+                      sx={{
+                        mb: 2,
+                        display: "flex",
+                        flexDirection: "column",
+                        height: 700,
+                        overflow: "hidden",
+                        overflowY: "scroll",
+                        // justifyContent="flex-end" # DO NOT USE THIS WITH 'scroll'
                       }}
-                      onKeyDown={handleKeyDown}
-                    />
-                    <SendRoundedIcon
-                      fontSize="large"
-                      sx={{ flexGrow: 0.5, alignSelf: "center" }}
-                      onClick={sendMessage}
-                    />
+                    >
+                      {messages.length > 0 && (
+                        <>
+                          <Box
+                            display={"flex"}
+                            sx={{
+                              padding: 2,
+                            }}
+                            flexDirection={"column"}
+                          >
+                            {messages.map((x) => {
+                              if (currentChat.Id != null)
+                                if (
+                                  userDetails.Usernames[x.SentTo] &&
+                                  ((x.User == currentChat.Id &&
+                                    x.SentTo == userDetails.UserId) ||
+                                    (x.User == userDetails.UserId &&
+                                      x.SentTo == currentChat.Id))
+                                ) {
+                                  return (
+                                    <>
+                                      <Box
+                                        alignSelf={
+                                          x.User == userDetails.UserId
+                                            ? "end"
+                                            : "start"
+                                        }
+                                      >
+                                        {/* <Typography fontSize={12}>
+                                          {x.SentTo == userDetails.UserId ||
+                                          x.User != userDetails.UserId
+                                            ? userDetails.Usernames[x.User]
+                                            : "you"}
+                                        </Typography> */}
+                                        <Box
+                                          sx={{
+                                            // display: "inline-block",
+                                            border: "1px solid black",
+                                            padding: 2,
+                                            borderRadius: "16px",
+                                            marginTop: 2,
+                                          }}
+                                        >
+                                          {x.Message}
+                                        </Box>
+                                      </Box>
+                                    </>
+                                  );
+                                } else if (currentChat.Id == x.SentTo) {
+                                  return (
+                                    <>
+                                      <Box
+                                        alignSelf={
+                                          x.User == userDetails.UserId
+                                            ? "end"
+                                            : "start"
+                                        }
+                                      >
+                                        <Typography fontSize={12}>
+                                          {x.User != userDetails.UserId
+                                            ? userDetails.Usernames[x.User]
+                                            : "you"}
+                                        </Typography>
+                                        <Box
+                                          sx={{
+                                            // display: "inline-block",
+                                            border: "1px solid black",
+                                            padding: 2,
+                                            borderRadius: "16px",
+                                          }}
+                                        >
+                                          {x.Message}
+                                        </Box>
+                                      </Box>
+                                    </>
+                                  );
+                                }
+                            })}
+                          </Box>
+                        </>
+                      )}
+                    </Box>
+                    <Box
+                      display={"flex"}
+                      flexDirection={"row"}
+                      marginBottom={5}
+                    >
+                      <TextField
+                        sx={{ flexGrow: 11 }}
+                        id="outlined-basic"
+                        variant="outlined"
+                        value={message}
+                        onChange={(e) => {
+                          setMessage(e.target.value);
+                        }}
+                        onKeyDown={handleKeyDown}
+                      />
+                      <SendRoundedIcon
+                        fontSize="large"
+                        sx={{ flexGrow: 0.5, alignSelf: "center" }}
+                        onClick={sendMessage}
+                      />
+                    </Box>
                   </Box>
                 </Box>
               )}

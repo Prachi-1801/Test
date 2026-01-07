@@ -2,12 +2,16 @@ import { Box, Button, TextField, Typography } from "@mui/material";
 import { useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserDetailsContext, ConnectionContext } from "./context";
+import { HubConnectionState } from "@microsoft/signalr";
 
 const LoginForm = () => {
   const navigate = useNavigate();
 
   const { userDetails, setUserDetails } = useContext(UserDetailsContext);
   const connection = useContext(ConnectionContext);
+  useEffect(() => {
+    console.log("UserDetails:", userDetails);
+  }, [userDetails]);
 
   useEffect(() => {
     if (connection) {
@@ -17,6 +21,26 @@ const LoginForm = () => {
           Usernames: { ...user },
         }));
       });
+
+      connection
+        .start()
+        .then(() => {
+          // Now it is safe to call Hub methods
+          connection
+            .invoke("GetAllGroups")
+            .then((response) => {
+              if (response != null)
+                setUserDetails((item) => ({
+                  ...item,
+                  Groupnames: Object.entries(response)?.map(([key, value]) => ({
+                    GroupName: key,
+                    Users: value,
+                  })),
+                }));
+            })
+            .catch((err) => console.error(err.toString()));
+        })
+        .catch((err) => console.error(err));
     }
   }, [connection]);
 
