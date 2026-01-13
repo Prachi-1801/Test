@@ -2,16 +2,12 @@ import { Box, Button, TextField, Typography } from "@mui/material";
 import { useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserDetailsContext, ConnectionContext } from "./context";
-import { HubConnectionState } from "@microsoft/signalr";
 
 const LoginForm = () => {
   const navigate = useNavigate();
 
   const { userDetails, setUserDetails } = useContext(UserDetailsContext);
   const connection = useContext(ConnectionContext);
-  useEffect(() => {
-    console.log("UserDetails:", userDetails);
-  }, [userDetails]);
 
   useEffect(() => {
     if (connection) {

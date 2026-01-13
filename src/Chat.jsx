@@ -17,10 +17,14 @@ import {
   FormControl,
   InputLabel,
   MenuItem,
+  Input,
 } from "@mui/material";
 import { UserDetailsContext, ConnectionContext } from "./context";
 import AvatarInitial from "./AvatarInitial";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
+import EmojiPicker from "emoji-picker-react";
+import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
+import AttachmentOutlinedIcon from "@mui/icons-material/AttachmentOutlined";
 
 function ChatComponent() {
   const { userDetails, setUserDetails } = useContext(UserDetailsContext);
@@ -34,10 +38,7 @@ function ChatComponent() {
   const [newGroupName, setNewGroupName] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [currentChat, setCurrentChat] = useState({ Id: null, IsGroup: false });
-
-  useEffect(() => {
-    console.log("UserDetails:", userDetails);
-  }, [userDetails]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   useEffect(() => {
     if (connection) {
@@ -76,11 +77,6 @@ function ChatComponent() {
             GroupName: key,
             Users: value,
           })),
-          // ...(user.Groupnames ?? []),
-          // {
-          //   GroupName: groupName,
-          //   Users: groupUsers,
-          // },
         }));
       });
     }
@@ -104,7 +100,6 @@ function ChatComponent() {
 
   const handleCloseStartChatPopover = () => {
     setOpenStartChatPopover(null);
-    // setSelectedCurrentUsers([]);
     setSelectedGroup(null);
   };
 
@@ -167,7 +162,6 @@ function ChatComponent() {
       setCurrentChat({ Id: newGroupName, IsGroup: true });
       setNewGroupName(null);
     }
-    // setSelectedCurrentUsers([]);
     handleGroupPopupClose();
   };
 
@@ -189,6 +183,11 @@ function ChatComponent() {
   const handleGroupChange = (event) => {
     setSelectedGroup(event.target.value);
     setSelectedCurrentUsers([]);
+  };
+
+  const handleEmojiClick = (emojiData) => {
+    setMessage((msg) => msg + emojiData.emoji);
+    setShowEmojiPicker(false);
   };
 
   const open = Boolean(openStartChatPopover);
@@ -393,7 +392,6 @@ function ChatComponent() {
                         height: 700,
                         overflow: "hidden",
                         overflowY: "scroll",
-                        // justifyContent="flex-end" # DO NOT USE THIS WITH 'scroll'
                       }}
                     >
                       {messages.length > 0 && (
@@ -423,15 +421,8 @@ function ChatComponent() {
                                             : "start"
                                         }
                                       >
-                                        {/* <Typography fontSize={12}>
-                                          {x.SentTo == userDetails.UserId ||
-                                          x.User != userDetails.UserId
-                                            ? userDetails.Usernames[x.User]
-                                            : "you"}
-                                        </Typography> */}
                                         <Box
                                           sx={{
-                                            // display: "inline-block",
                                             border: "1px solid black",
                                             padding: 2,
                                             borderRadius: "16px",
@@ -460,7 +451,6 @@ function ChatComponent() {
                                         </Typography>
                                         <Box
                                           sx={{
-                                            // display: "inline-block",
                                             border: "1px solid black",
                                             padding: 2,
                                             borderRadius: "16px",
@@ -476,14 +466,20 @@ function ChatComponent() {
                           </Box>
                         </>
                       )}
+                      <EmojiPicker
+                        open={showEmojiPicker}
+                        style={{ position: "absolute", bottom: 85, right: 16 }}
+                        onEmojiClick={handleEmojiClick}
+                      />
                     </Box>
                     <Box
                       display={"flex"}
                       flexDirection={"row"}
+                      margin={0.5}
                       marginBottom={5}
                     >
                       <TextField
-                        sx={{ flexGrow: 11 }}
+                        fullWidth
                         id="outlined-basic"
                         variant="outlined"
                         value={message}
@@ -491,10 +487,50 @@ function ChatComponent() {
                           setMessage(e.target.value);
                         }}
                         onKeyDown={handleKeyDown}
+                        slotProps={{
+                          input: {
+                            endAdornment: (
+                              <Box
+                                display={"flex"}
+                                flexDirection={"row"}
+                                gap={1}
+                              >
+                                <label for="files">
+                                  <AttachmentOutlinedIcon
+                                    fontSize="large"
+                                    sx={{ alignSelf: "center" }}
+                                  />
+                                </label>
+                                <Input
+                                  id="files"
+                                  type="file"
+                                  style={{ display: "none" }}
+                                />
+                                <EmojiEmotionsIcon
+                                  fontSize="large"
+                                  sx={{
+                                    alignSelf: "center",
+                                    color: "#FC0",
+                                  }}
+                                  onClick={() => setShowEmojiPicker(true)}
+                                />
+                              </Box>
+                            ),
+                          },
+                        }}
                       />
+                      {/* <EmojiEmotionsIcon
+                        fontSize="large"
+                        sx={{
+                          flexGrow: 0.1,
+                          alignSelf: "center",
+                          color: "#FC0",
+                        }}
+                        onClick={() => setShowEmojiPicker(true)}
+                      /> */}
                       <SendRoundedIcon
                         fontSize="large"
-                        sx={{ flexGrow: 0.5, alignSelf: "center" }}
+                        sx={{ flexGrow: 0.5, alignSelf: "center", margin: 1 }}
                         onClick={sendMessage}
                       />
                     </Box>
@@ -505,34 +541,51 @@ function ChatComponent() {
           </Grid>
         </Box>
       </Box>
-      <Dialog
-        open={openGroupPopup}
-        onClose={handleGroupPopupClose}
-        slotProps={{ paper: { sx: { minWidth: 445 } } }}
-      >
-        <DialogTitle>Create Group</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus // Automatically focuses the input field when the dialog opens
-            margin="dense"
-            id="name"
-            label="Enter Group Name"
-            type="email"
-            fullWidth
-            variant="standard"
-            value={newGroupName}
-            onChange={handleGroupPopupInputChange}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleGroupPopupClose}>Cancel</Button>
-          <Button onClick={handleGroupPopupSubmit} variant="contained">
-            Create
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {newFunction(
+        openGroupPopup,
+        handleGroupPopupClose,
+        newGroupName,
+        handleGroupPopupInputChange,
+        handleGroupPopupSubmit
+      )}
     </>
   );
 }
 
 export default ChatComponent;
+function newFunction(
+  openGroupPopup,
+  handleGroupPopupClose,
+  newGroupName,
+  handleGroupPopupInputChange,
+  handleGroupPopupSubmit
+) {
+  return (
+    <Dialog
+      open={openGroupPopup}
+      onClose={handleGroupPopupClose}
+      slotProps={{ paper: { sx: { minWidth: 445 } } }}
+    >
+      <DialogTitle>Create Group</DialogTitle>
+      <DialogContent>
+        <TextField
+          autoFocus // Automatically focuses the input field when the dialog opens
+          margin="dense"
+          id="name"
+          label="Enter Group Name"
+          type="email"
+          fullWidth
+          variant="standard"
+          value={newGroupName}
+          onChange={handleGroupPopupInputChange}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleGroupPopupClose}>Cancel</Button>
+        <Button onClick={handleGroupPopupSubmit} variant="contained">
+          Create
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
