@@ -18,6 +18,7 @@ import {
   InputLabel,
   MenuItem,
   Input,
+  Chip,
 } from "@mui/material";
 import { UserDetailsContext, ConnectionContext } from "./context";
 import AvatarInitial from "./AvatarInitial";
@@ -39,6 +40,7 @@ function ChatComponent() {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [currentChat, setCurrentChat] = useState({ Id: null, IsGroup: false });
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     if (connection) {
@@ -104,27 +106,33 @@ function ChatComponent() {
   };
 
   const sendMessage = async () => {
-    if (connection && currentChat.Id != null) {
-      if (!currentChat.IsGroup) {
-        await connection.invoke(
-          "SendMessageToUser",
-          userDetails.UserId,
-          currentChat.Id,
-          message
-        );
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          {
-            User: userDetails.UserId,
-            Message: message,
-            SentTo: currentChat.Id,
-            SentTime: new Date(),
-          },
-        ]);
-      } else if (currentChat.IsGroup) {
-        await connection.invoke("SendMessageToGroup", currentChat.Id, message);
+    if (message.length > 0) {
+      if (connection && currentChat.Id != null) {
+        if (!currentChat.IsGroup) {
+          await connection.invoke(
+            "SendMessageToUser",
+            userDetails.UserId,
+            currentChat.Id,
+            message
+          );
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            {
+              User: userDetails.UserId,
+              Message: message,
+              SentTo: currentChat.Id,
+              SentTime: new Date(),
+            },
+          ]);
+        } else if (currentChat.IsGroup) {
+          await connection.invoke(
+            "SendMessageToGroup",
+            currentChat.Id,
+            message
+          );
+        }
+        setMessage(() => "");
       }
-      setMessage(() => "");
     }
   };
 
@@ -188,6 +196,11 @@ function ChatComponent() {
   const handleEmojiClick = (emojiData) => {
     setMessage((msg) => msg + emojiData.emoji);
     setShowEmojiPicker(false);
+  };
+
+  const handleFileChange = (event) => {
+    console.log("test: ", event.target.files[0]);
+    setSelectedFile(event.target.files[0]);
   };
 
   const open = Boolean(openStartChatPopover);
@@ -477,8 +490,17 @@ function ChatComponent() {
                       flexDirection={"row"}
                       margin={0.5}
                       marginBottom={5}
+                      border={1}
+                      borderRadius={1}
                     >
-                      <TextField
+                      {selectedFile && (
+                        <Chip
+                          label={selectedFile && selectedFile.name}
+                          onDelete={() => setSelectedFile(null)}
+                        ></Chip>
+                      )}
+                      <Input
+                        disableUnderline
                         fullWidth
                         id="outlined-basic"
                         variant="outlined"
@@ -487,38 +509,29 @@ function ChatComponent() {
                           setMessage(e.target.value);
                         }}
                         onKeyDown={handleKeyDown}
-                        slotProps={{
-                          input: {
-                            endAdornment: (
-                              <Box
-                                display={"flex"}
-                                flexDirection={"row"}
-                                gap={1}
-                              >
-                                <label for="files">
-                                  <AttachmentOutlinedIcon
-                                    fontSize="large"
-                                    sx={{ alignSelf: "center" }}
-                                  />
-                                </label>
-                                <Input
-                                  id="files"
-                                  type="file"
-                                  style={{ display: "none" }}
-                                />
-                                <EmojiEmotionsIcon
-                                  fontSize="large"
-                                  sx={{
-                                    alignSelf: "center",
-                                    color: "#FC0",
-                                  }}
-                                  onClick={() => setShowEmojiPicker(true)}
-                                />
-                              </Box>
-                            ),
-                          },
-                        }}
                       />
+                      <Box display={"flex"} flexDirection={"row"} gap={1}>
+                        <label htmlFor="files">
+                          <AttachmentOutlinedIcon
+                            fontSize="large"
+                            sx={{ cursor: "pointer", alignSelf: "center" }}
+                          />
+                        </label>
+                        <Input
+                          id="files"
+                          type="file"
+                          style={{ display: "none" }}
+                          onChange={handleFileChange}
+                        />
+                        <EmojiEmotionsIcon
+                          fontSize="large"
+                          sx={{
+                            alignSelf: "center",
+                            color: "#FC0",
+                          }}
+                          onClick={() => setShowEmojiPicker(true)}
+                        />
+                      </Box>
                       {/* <EmojiEmotionsIcon
                         fontSize="large"
                         sx={{
