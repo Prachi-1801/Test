@@ -6,7 +6,7 @@ import { useState } from "react";
 import { UserDetailsContext } from "./context";
 import Connection from "./Connection";
 import Test1 from "./Q1";
-import FileSaverComponent from "./FileSave";
+import FileUploadComponent from "./FileSave";
 
 function App() {
   const [userDetails, setUserDetails] = useState({
@@ -18,8 +18,8 @@ function App() {
 
   return (
     <>
-      {/* <FileSaverComponent></FileSaverComponent> */}
-      <Connection>
+      <FileUploadComponent></FileUploadComponent>
+      {/* <Connection>
         <UserDetailsContext value={{ userDetails, setUserDetails }}>
           <BrowserRouter>
             <Routes>
@@ -28,7 +28,7 @@ function App() {
             </Routes>
           </BrowserRouter>
         </UserDetailsContext>
-      </Connection>
+      </Connection> */}
     </>
   );
 }

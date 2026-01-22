@@ -54,6 +54,7 @@ function ChatComponent() {
             SentTo: connectionId,
             SentName: userDetails.Usernames[connectionId],
             SentTime: new Date(),
+            File: null,
           },
         ]);
       });
@@ -68,6 +69,7 @@ function ChatComponent() {
             SentName: "Group",
             SentTime: new Date(),
             Message: message,
+            File: null,
           },
         ]);
       });
@@ -106,34 +108,67 @@ function ChatComponent() {
   };
 
   const sendMessage = async () => {
-    if (message.length > 0) {
+    if (selectedFile) {
+      console.log("file", selectedFile);
+      const formData = new FormData();
+      formData.append("file", selectedFile);
       if (connection && currentChat.Id != null) {
         if (!currentChat.IsGroup) {
           await connection.invoke(
             "SendMessageToUser",
             userDetails.UserId,
             currentChat.Id,
-            message
+            "dfcvdf",
+            formData
           );
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            {
-              User: userDetails.UserId,
-              Message: message,
-              SentTo: currentChat.Id,
-              SentTime: new Date(),
-            },
-          ]);
+          // setMessages((prevMessages) => [
+          //   ...prevMessages,
+          //   {
+          //     User: userDetails.UserId,
+          //     Message: selectedFile,
+          //     SentTo: currentChat.Id,
+          //     SentTime: new Date(),
+          //   },
+          // ]);
         } else if (currentChat.IsGroup) {
           await connection.invoke(
             "SendMessageToGroup",
             currentChat.Id,
-            message
+            "",
+            formData
           );
         }
         setMessage(() => "");
       }
     }
+    // if (message.length > 0) {
+    //   if (connection && currentChat.Id != null) {
+    //     if (!currentChat.IsGroup) {
+    //       await connection.invoke(
+    //         "SendMessageToUser",
+    //         userDetails.UserId,
+    //         currentChat.Id,
+    //         message
+    //       );
+    //       setMessages((prevMessages) => [
+    //         ...prevMessages,
+    //         {
+    //           User: userDetails.UserId,
+    //           Message: message,
+    //           SentTo: currentChat.Id,
+    //           SentTime: new Date(),
+    //         },
+    //       ]);
+    //     } else if (currentChat.IsGroup) {
+    //       await connection.invoke(
+    //         "SendMessageToGroup",
+    //         currentChat.Id,
+    //         message
+    //       );
+    //     }
+    //     setMessage(() => "");
+    //   }
+    // }
   };
 
   const handleKeyDown = (event) => {
@@ -487,50 +522,78 @@ function ChatComponent() {
                     </Box>
                     <Box
                       display={"flex"}
-                      flexDirection={"row"}
-                      margin={0.5}
-                      marginBottom={5}
+                      mx={1}
+                      mb={5}
+                      // marginBottom={5}
                       border={1}
                       borderRadius={1}
+                      flexDirection={"column"}
                     >
-                      {selectedFile && (
-                        <Chip
-                          label={selectedFile && selectedFile.name}
-                          onDelete={() => setSelectedFile(null)}
-                        ></Chip>
-                      )}
-                      <Input
-                        disableUnderline
-                        fullWidth
-                        id="outlined-basic"
-                        variant="outlined"
-                        value={message}
-                        onChange={(e) => {
-                          setMessage(e.target.value);
-                        }}
-                        onKeyDown={handleKeyDown}
-                      />
-                      <Box display={"flex"} flexDirection={"row"} gap={1}>
-                        <label htmlFor="files">
-                          <AttachmentOutlinedIcon
-                            fontSize="large"
-                            sx={{ cursor: "pointer", alignSelf: "center" }}
-                          />
-                        </label>
+                      <Box>
+                        {selectedFile && (
+                          <Chip
+                            label={selectedFile && selectedFile.name}
+                            onDelete={() => setSelectedFile(null)}
+                          ></Chip>
+                        )}
+                      </Box>
+                      <Box display={"flex"} flexDirection={"row"}>
                         <Input
-                          id="files"
-                          type="file"
-                          style={{ display: "none" }}
-                          onChange={handleFileChange}
-                        />
-                        <EmojiEmotionsIcon
-                          fontSize="large"
-                          sx={{
-                            alignSelf: "center",
-                            color: "#FC0",
+                          disableUnderline
+                          fullWidth
+                          id="outlined-basic"
+                          variant="outlined"
+                          value={message}
+                          onChange={(e) => {
+                            setMessage(e.target.value.trim());
                           }}
-                          onClick={() => setShowEmojiPicker(true)}
+                          onKeyDown={handleKeyDown}
                         />
+                        {/* <Box> */}
+                        <Box
+                          display={"flex"}
+                          flexDirection={"row"}
+                          gap={1}
+                          alignItems={"center"}
+                        >
+                          <label
+                            htmlFor="files"
+                            style={{ alignSelf: "center" }}
+                          >
+                            <AttachmentOutlinedIcon
+                              fontSize="medium"
+                              sx={{
+                                cursor: "pointer",
+                                alignSelf: "center",
+                                rotate: "300deg",
+                              }}
+                            />
+                          </label>
+                          <Input
+                            id="files"
+                            type="file"
+                            style={{ display: "none" }}
+                            onChange={handleFileChange}
+                          />
+                          <EmojiEmotionsIcon
+                            fontSize="medium"
+                            sx={{
+                              alignSelf: "center",
+                              color: "#FC0",
+                            }}
+                            onClick={() => setShowEmojiPicker(true)}
+                          />
+                          <Typography>|</Typography>
+                          <SendRoundedIcon
+                            fontSize="medium"
+                            sx={{
+                              flexGrow: 0.5,
+                              alignSelf: "center",
+                            }}
+                            onClick={sendMessage}
+                          />
+                        </Box>
+                        {/* </Box> */}
                       </Box>
                       {/* <EmojiEmotionsIcon
                         fontSize="large"
@@ -541,11 +604,6 @@ function ChatComponent() {
                         }}
                         onClick={() => setShowEmojiPicker(true)}
                       /> */}
-                      <SendRoundedIcon
-                        fontSize="large"
-                        sx={{ flexGrow: 0.5, alignSelf: "center", margin: 1 }}
-                        onClick={sendMessage}
-                      />
                     </Box>
                   </Box>
                 </Box>
