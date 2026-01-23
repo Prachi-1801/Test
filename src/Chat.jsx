@@ -26,6 +26,7 @@ import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import EmojiPicker from "emoji-picker-react";
 import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
 import AttachmentOutlinedIcon from "@mui/icons-material/AttachmentOutlined";
+// import { saveAs } from "file-saver";
 
 function ChatComponent() {
   const { userDetails, setUserDetails } = useContext(UserDetailsContext);
@@ -109,66 +110,70 @@ function ChatComponent() {
 
   const sendMessage = async () => {
     if (selectedFile) {
-      console.log("file", selectedFile);
-      const formData = new FormData();
-      formData.append("file", selectedFile);
+      const reader = new FileReader();
+
+      reader.onload = async () => {
+        const base64Data = reader.result.split(",")[1];
+        if (connection && currentChat.Id != null) {
+          if (!currentChat.IsGroup) {
+            await connection.invoke(
+              "SendMessageToUser",
+              userDetails.UserId,
+              currentChat.Id,
+              "",
+              selectedFile.name,
+              base64Data
+            );
+            // setMessages((prevMessages) => [
+            //   ...prevMessages,
+            //   {
+            //     User: userDetails.UserId,
+            //     Message: selectedFile,
+            //     SentTo: currentChat.Id,
+            //     SentTime: new Date(),
+            //   },
+            // ]);
+          } else if (currentChat.IsGroup) {
+            await connection.invoke(
+              "SendMessageToGroup",
+              currentChat.Id,
+              "",
+              selectedFile.name,
+              base64Data
+            );
+          }
+          setMessage(() => "");
+        }
+      };
+    }
+    if (message.length > 0) {
       if (connection && currentChat.Id != null) {
         if (!currentChat.IsGroup) {
           await connection.invoke(
             "SendMessageToUser",
             userDetails.UserId,
             currentChat.Id,
-            "dfcvdf",
-            formData
+            message
           );
-          // setMessages((prevMessages) => [
-          //   ...prevMessages,
-          //   {
-          //     User: userDetails.UserId,
-          //     Message: selectedFile,
-          //     SentTo: currentChat.Id,
-          //     SentTime: new Date(),
-          //   },
-          // ]);
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            {
+              User: userDetails.UserId,
+              Message: message,
+              SentTo: currentChat.Id,
+              SentTime: new Date(),
+            },
+          ]);
         } else if (currentChat.IsGroup) {
           await connection.invoke(
             "SendMessageToGroup",
             currentChat.Id,
-            "",
-            formData
+            message
           );
         }
         setMessage(() => "");
       }
     }
-    // if (message.length > 0) {
-    //   if (connection && currentChat.Id != null) {
-    //     if (!currentChat.IsGroup) {
-    //       await connection.invoke(
-    //         "SendMessageToUser",
-    //         userDetails.UserId,
-    //         currentChat.Id,
-    //         message
-    //       );
-    //       setMessages((prevMessages) => [
-    //         ...prevMessages,
-    //         {
-    //           User: userDetails.UserId,
-    //           Message: message,
-    //           SentTo: currentChat.Id,
-    //           SentTime: new Date(),
-    //         },
-    //       ]);
-    //     } else if (currentChat.IsGroup) {
-    //       await connection.invoke(
-    //         "SendMessageToGroup",
-    //         currentChat.Id,
-    //         message
-    //       );
-    //     }
-    //     setMessage(() => "");
-    //   }
-    // }
   };
 
   const handleKeyDown = (event) => {
