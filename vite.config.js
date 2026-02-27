@@ -7,6 +7,9 @@ export default defineConfig({
     host: true, // or host: '0.0.0.0'
     port: 5173, // or your desired port
   },
+  define: {
+    global: "window", // Polyfill the global object to window
+  },
 });
 
 // import { defineConfig } from "vite";

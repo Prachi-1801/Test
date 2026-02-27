@@ -26,6 +26,8 @@ import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import EmojiPicker from "emoji-picker-react";
 import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
 import AttachmentOutlinedIcon from "@mui/icons-material/AttachmentOutlined";
+import MicIcon from "@mui/icons-material/Mic";
+import MicOffIcon from "@mui/icons-material/MicOff";
 // import { saveAs } from "file-saver";
 
 function ChatComponent() {
@@ -44,6 +46,10 @@ function ChatComponent() {
   const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
+    console.log("Messages: ", messages);
+  }, [messages]);
+
+  useEffect(() => {
     if (connection) {
       connection.on("ReceiveUserMessage", (userId, connectionId, message) => {
         setMessages((prevMessages) => [
@@ -55,7 +61,6 @@ function ChatComponent() {
             SentTo: connectionId,
             SentName: userDetails.Usernames[connectionId],
             SentTime: new Date(),
-            File: null,
           },
         ]);
       });
@@ -70,10 +75,53 @@ function ChatComponent() {
             SentName: "Group",
             SentTime: new Date(),
             Message: message,
-            File: null,
           },
         ]);
       });
+
+      connection.on(
+        "ReceiveUserFile",
+        (userId, connectionId, filename, filedata, filetype) => {
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            {
+              User: userId,
+              UserName: userDetails.Usernames[userId],
+              IsFile: true,
+              Message: {
+                filename: filename,
+                filedata: filedata,
+                filetype: filetype,
+              },
+              SentTo: connectionId,
+              SentName: userDetails.Usernames[connectionId],
+              SentTime: new Date(),
+            },
+          ]);
+        },
+      );
+
+      connection.on(
+        "ReceiveGroupFile",
+        (userId, group, filename, filedata, filetype) => {
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            {
+              User: userId,
+              UserName: userDetails.Usernames[userId],
+              SentTo: group,
+              SentName: "Group",
+              SentTime: new Date(),
+              Message: {
+                filename: filename,
+                filedata: filedata,
+                filetype: filetype,
+              },
+              IsFile: true,
+            },
+          ]);
+        },
+      );
 
       connection.on("ReceiveGroupNames", (groupNames) => {
         setUserDetails((user) => ({
@@ -89,6 +137,20 @@ function ChatComponent() {
 
   const handleClickNewChatPopover = async (event) => {
     setOpenStartChatPopover(event.currentTarget);
+  };
+
+  const downloadFile = (filename, base64, type) => {
+    const blob = new Blob(
+      [Uint8Array.from(atob(base64.split(",").pop()), (c) => c.charCodeAt(0))],
+      { type },
+    );
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleClickStartChatPopover = () => {
@@ -109,43 +171,6 @@ function ChatComponent() {
   };
 
   const sendMessage = async () => {
-    if (selectedFile) {
-      const reader = new FileReader();
-
-      reader.onload = async () => {
-        const base64Data = reader.result.split(",")[1];
-        if (connection && currentChat.Id != null) {
-          if (!currentChat.IsGroup) {
-            await connection.invoke(
-              "SendMessageToUser",
-              userDetails.UserId,
-              currentChat.Id,
-              "",
-              selectedFile.name,
-              base64Data
-            );
-            // setMessages((prevMessages) => [
-            //   ...prevMessages,
-            //   {
-            //     User: userDetails.UserId,
-            //     Message: selectedFile,
-            //     SentTo: currentChat.Id,
-            //     SentTime: new Date(),
-            //   },
-            // ]);
-          } else if (currentChat.IsGroup) {
-            await connection.invoke(
-              "SendMessageToGroup",
-              currentChat.Id,
-              "",
-              selectedFile.name,
-              base64Data
-            );
-          }
-          setMessage(() => "");
-        }
-      };
-    }
     if (message.length > 0) {
       if (connection && currentChat.Id != null) {
         if (!currentChat.IsGroup) {
@@ -153,7 +178,7 @@ function ChatComponent() {
             "SendMessageToUser",
             userDetails.UserId,
             currentChat.Id,
-            message
+            message,
           );
           setMessages((prevMessages) => [
             ...prevMessages,
@@ -168,12 +193,102 @@ function ChatComponent() {
           await connection.invoke(
             "SendMessageToGroup",
             currentChat.Id,
-            message
+            message,
           );
         }
         setMessage(() => "");
       }
     }
+
+    if (selectedFile && connection) {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Data = reader.result.split(",")[1];
+
+        try {
+          if (currentChat.IsGroup) {
+            await connection.invoke(
+              "SendFileToGroup",
+              currentChat.Id,
+              selectedFile.name,
+              base64Data,
+              selectedFile.type,
+            );
+          } else {
+            await connection.invoke(
+              "SendFileToUser",
+              userDetails.UserId,
+              currentChat.Id,
+              selectedFile.name,
+              base64Data,
+              selectedFile.type,
+            );
+          }
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            {
+              User: userDetails.UserId,
+              Message: {
+                filename: selectedFile.name,
+                filedata: base64Data,
+                filetype: selectedFile.type,
+              },
+              SentTo: currentChat.Id,
+              SentTime: new Date(),
+              IsFile: true,
+            },
+          ]);
+        } catch (error) {
+          console.error("Error sending file to SignalR:", error);
+        }
+
+        // Clear selected file after sending
+        setSelectedFile(null);
+      };
+      reader.readAsDataURL(selectedFile); // Convert file to base64
+    } else {
+      console.log("No file selected or no connection.");
+    }
+
+    // if (selectedFile) {
+    //   const reader = new FileReader();
+    //   console.log("Test");
+    //   reader.onload = async () => {
+    //     const base64Data = reader.result.split(",")[1];
+    //     console.log("base64data: ", selectedFile);
+    //     if (connection && currentChat.Id != null) {
+    //       if (!currentChat.IsGroup) {
+    //         await connection.invoke(
+    //           "SendFileToUser",
+    //           userDetails.UserId,
+    //           currentChat.Id,
+    //           selectedFile.name,
+    //           base64Data,
+    //         );
+    //         // setMessages((prevMessages) => [
+    //         //   ...prevMessages,
+    //         //   {
+    //         //     User: userDetails.UserId,
+    //         //     Message: selectedFile,
+    //         //     SentTo: currentChat.Id,
+    //         //     SentTime: new Date(),
+    //         //   },
+    //         // ]);
+    //       } else if (currentChat.IsGroup) {
+    //         await connection.invoke(
+    //           "SendFileToGroup",
+    //           currentChat.Id,
+    //           selectedFile.name,
+    //           base64Data,
+    //         );
+    //       }
+    //       setSelectedFile(null);
+    //     }
+    //   };
+    //   reader.onerror = (error) => {
+    //     console.error("FileReader error: ", error);
+    //   };
+    // }
   };
 
   const handleKeyDown = (event) => {
@@ -205,7 +320,7 @@ function ChatComponent() {
         "JoinGroup",
         newGroupName,
         userDetails.UserId,
-        groupUsers
+        groupUsers,
       );
       setCurrentChat({ Id: newGroupName, IsGroup: true });
       setNewGroupName(null);
@@ -239,7 +354,6 @@ function ChatComponent() {
   };
 
   const handleFileChange = (event) => {
-    console.log("test: ", event.target.files[0]);
     setSelectedFile(event.target.files[0]);
   };
 
@@ -436,179 +550,174 @@ function ChatComponent() {
                       ((currentChat.IsGroup && currentChat.Id) ||
                         userDetails.Usernames[currentChat.Id])}
                   </Box>
-                  <Box>
-                    <Box
-                      sx={{
-                        mb: 2,
-                        display: "flex",
-                        flexDirection: "column",
-                        height: 700,
-                        overflow: "hidden",
-                        overflowY: "scroll",
-                      }}
-                    >
-                      {messages.length > 0 && (
-                        <>
-                          <Box
-                            display={"flex"}
-                            sx={{
-                              padding: 2,
-                            }}
-                            flexDirection={"column"}
-                          >
-                            {messages.map((x) => {
-                              if (currentChat.Id != null)
-                                if (
-                                  userDetails.Usernames[x.SentTo] &&
-                                  ((x.User == currentChat.Id &&
-                                    x.SentTo == userDetails.UserId) ||
-                                    (x.User == userDetails.UserId &&
-                                      x.SentTo == currentChat.Id))
-                                ) {
-                                  return (
-                                    <>
-                                      <Box
-                                        alignSelf={
-                                          x.User == userDetails.UserId
-                                            ? "end"
-                                            : "start"
-                                        }
-                                      >
-                                        <Box
-                                          sx={{
-                                            border: "1px solid black",
-                                            padding: 2,
-                                            borderRadius: "16px",
-                                            marginTop: 2,
-                                          }}
-                                        >
-                                          {x.Message}
-                                        </Box>
-                                      </Box>
-                                    </>
-                                  );
-                                } else if (currentChat.Id == x.SentTo) {
-                                  return (
-                                    <>
-                                      <Box
-                                        alignSelf={
-                                          x.User == userDetails.UserId
-                                            ? "end"
-                                            : "start"
-                                        }
-                                      >
-                                        <Typography fontSize={12}>
-                                          {x.User != userDetails.UserId
-                                            ? userDetails.Usernames[x.User]
-                                            : "you"}
-                                        </Typography>
-                                        <Box
-                                          sx={{
-                                            border: "1px solid black",
-                                            padding: 2,
-                                            borderRadius: "16px",
-                                          }}
-                                        >
-                                          {x.Message}
-                                        </Box>
-                                      </Box>
-                                    </>
-                                  );
-                                }
-                            })}
-                          </Box>
-                        </>
-                      )}
-                      <EmojiPicker
-                        open={showEmojiPicker}
-                        style={{ position: "absolute", bottom: 85, right: 16 }}
-                        onEmojiClick={handleEmojiClick}
-                      />
-                    </Box>
-                    <Box
-                      display={"flex"}
-                      mx={1}
-                      mb={5}
-                      // marginBottom={5}
-                      border={1}
-                      borderRadius={1}
-                      flexDirection={"column"}
-                    >
-                      <Box>
-                        {selectedFile && (
-                          <Chip
-                            label={selectedFile && selectedFile.name}
-                            onDelete={() => setSelectedFile(null)}
-                          ></Chip>
-                        )}
-                      </Box>
-                      <Box display={"flex"} flexDirection={"row"}>
-                        <Input
-                          disableUnderline
-                          fullWidth
-                          id="outlined-basic"
-                          variant="outlined"
-                          value={message}
-                          onChange={(e) => {
-                            setMessage(e.target.value.trim());
-                          }}
-                          onKeyDown={handleKeyDown}
-                        />
-                        {/* <Box> */}
+                  {/* chats */}
+                  <Box
+                    sx={{
+                      mb: 2,
+                      display: "flex",
+                      flexDirection: "column-reverse",
+                      flex: 1,
+                      overflow: "hidden",
+                      overflowY: "scroll",
+                    }}
+                  >
+                    {messages.length > 0 && (
+                      <>
                         <Box
                           display={"flex"}
-                          flexDirection={"row"}
-                          gap={1}
-                          alignItems={"center"}
+                          sx={{
+                            padding: 2,
+                          }}
+                          flexDirection={"column"}
                         >
-                          <label
-                            htmlFor="files"
-                            style={{ alignSelf: "center" }}
-                          >
-                            <AttachmentOutlinedIcon
-                              fontSize="medium"
-                              sx={{
-                                cursor: "pointer",
-                                alignSelf: "center",
-                                rotate: "300deg",
-                              }}
-                            />
-                          </label>
-                          <Input
-                            id="files"
-                            type="file"
-                            style={{ display: "none" }}
-                            onChange={handleFileChange}
-                          />
-                          <EmojiEmotionsIcon
-                            fontSize="medium"
-                            sx={{
-                              alignSelf: "center",
-                              color: "#FC0",
-                            }}
-                            onClick={() => setShowEmojiPicker(true)}
-                          />
-                          <Typography>|</Typography>
-                          <SendRoundedIcon
-                            fontSize="medium"
-                            sx={{
-                              flexGrow: 0.5,
-                              alignSelf: "center",
-                            }}
-                            onClick={sendMessage}
-                          />
+                          {messages.map((x) => {
+                            if (currentChat.Id != null)
+                              if (
+                                userDetails.Usernames[x.SentTo] &&
+                                ((x.User == currentChat.Id &&
+                                  x.SentTo == userDetails.UserId) ||
+                                  (x.User == userDetails.UserId &&
+                                    x.SentTo == currentChat.Id))
+                              ) {
+                                return (
+                                  <>
+                                    <Box
+                                      alignSelf={
+                                        x.User == userDetails.UserId
+                                          ? "end"
+                                          : "start"
+                                      }
+                                    >
+                                      <Box
+                                        sx={{
+                                          border: "1px solid black",
+                                          padding: 2,
+                                          borderRadius: "16px",
+                                          marginTop: 2,
+                                        }}
+                                        onClick={() =>
+                                          x.IsFile &&
+                                          downloadFile(
+                                            x.Message.filename,
+                                            x.Message.filedata,
+                                            x.Message.filetype,
+                                          )
+                                        }
+                                      >
+                                        {x.IsFile
+                                          ? x.Message.filename
+                                          : x.Message}
+                                      </Box>
+                                    </Box>
+                                  </>
+                                );
+                              } else if (currentChat.Id == x.SentTo) {
+                                return (
+                                  <>
+                                    <Box
+                                      alignSelf={
+                                        x.User == userDetails.UserId
+                                          ? "end"
+                                          : "start"
+                                      }
+                                    >
+                                      <Typography fontSize={12}>
+                                        {x.User != userDetails.UserId
+                                          ? userDetails.Usernames[x.User]
+                                          : "you"}
+                                      </Typography>
+                                      <Box
+                                        sx={{
+                                          border: "1px solid black",
+                                          padding: 2,
+                                          borderRadius: "16px",
+                                        }}
+                                      >
+                                        {x.Message}
+                                      </Box>
+                                    </Box>
+                                  </>
+                                );
+                              }
+                          })}
                         </Box>
-                        {/* </Box> */}
-                      </Box>
-                      {/* <EmojiEmotionsIcon
-                        fontSize="large"
-                        sx={{
-                          flexGrow: 0.1,
-                          alignSelf: "center",
-                          color: "#FC0",
+                      </>
+                    )}
+                    <EmojiPicker
+                      open={showEmojiPicker}
+                      style={{ position: "absolute", bottom: 85, right: 16 }}
+                      onEmojiClick={handleEmojiClick}
+                    />
+                  </Box>
+                  <Box
+                    display={"flex"}
+                    mx={1}
+                    mb={5}
+                    border={1}
+                    borderRadius={1}
+                    flexDirection={"column"}
+                  >
+                    <Box>
+                      {selectedFile && (
+                        <Chip
+                          label={selectedFile && selectedFile.name}
+                          onDelete={() => setSelectedFile(null)}
+                        ></Chip>
+                      )}
+                    </Box>
+                    <Box display={"flex"} flexDirection={"row"}>
+                      <Input
+                        sx={{ padding: 1 }}
+                        disableUnderline
+                        fullWidth
+                        id="outlined-basic"
+                        variant="outlined"
+                        value={message}
+                        onChange={(e) => {
+                          setMessage(e.target.value.trim());
                         }}
-                        onClick={() => setShowEmojiPicker(true)}
-                      /> */}
+                        onKeyDown={handleKeyDown}
+                      />
+                      <Box
+                        display={"flex"}
+                        flexDirection={"row"}
+                        gap={1}
+                        alignItems={"center"}
+                      >
+                        <label htmlFor="files" style={{ alignSelf: "center" }}>
+                          <AttachmentOutlinedIcon
+                            fontSize="medium"
+                            sx={{
+                              cursor: "pointer",
+                              alignSelf: "center",
+                              rotate: "300deg",
+                            }}
+                          />
+                        </label>
+                        <Input
+                          id="files"
+                          type="file"
+                          style={{ display: "none" }}
+                          onChange={handleFileChange}
+                        />
+                        <EmojiEmotionsIcon
+                          fontSize="medium"
+                          sx={{
+                            alignSelf: "center",
+                            color: "#FC0",
+                          }}
+                          onClick={() => setShowEmojiPicker(true)}
+                        />
+                        <Typography>|</Typography>
+                        <SendRoundedIcon
+                          fontSize="medium"
+                          sx={{
+                            flexGrow: 0.5,
+                            alignSelf: "center",
+                          }}
+                          onClick={sendMessage}
+                        />
+                      </Box>
                     </Box>
                   </Box>
                 </Box>
@@ -622,7 +731,7 @@ function ChatComponent() {
         handleGroupPopupClose,
         newGroupName,
         handleGroupPopupInputChange,
-        handleGroupPopupSubmit
+        handleGroupPopupSubmit,
       )}
     </>
   );
@@ -634,7 +743,7 @@ function newFunction(
   handleGroupPopupClose,
   newGroupName,
   handleGroupPopupInputChange,
-  handleGroupPopupSubmit
+  handleGroupPopupSubmit,
 ) {
   return (
     <Dialog
