@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import {
   Button,
   Box,
@@ -28,7 +28,7 @@ import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
 import AttachmentOutlinedIcon from "@mui/icons-material/AttachmentOutlined";
 import MicIcon from "@mui/icons-material/Mic";
 import MicOffIcon from "@mui/icons-material/MicOff";
-// import { saveAs } from "file-saver";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 function ChatComponent() {
   const { userDetails, setUserDetails } = useContext(UserDetailsContext);
@@ -44,10 +44,23 @@ function ChatComponent() {
   const [currentChat, setCurrentChat] = useState({ Id: null, IsGroup: false });
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isMicOn, setIsMicOn] = useState(false);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [audioBlob, setAudioBlob] = useState(null);
+
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const audioRef = useRef(null);
 
   useEffect(() => {
     console.log("Messages: ", messages);
   }, [messages]);
+
+  useEffect(() => {
+    if (audioRef.current && !isMicOn) {
+      audioRef.current.src = audioUrl;
+    }
+  }, [audioUrl, isMicOn]);
 
   useEffect(() => {
     if (connection) {
@@ -123,6 +136,36 @@ function ChatComponent() {
         },
       );
 
+      connection.on("ReceiveUserAudio", (userId, connectionId, audio) => {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            User: userId,
+            UserName: userDetails.Usernames[userId],
+            IsAudio: true,
+            Message: audio,
+            SentTo: connectionId,
+            SentName: userDetails.Usernames[connectionId],
+            SentTime: new Date(),
+          },
+        ]);
+      });
+
+      connection.on("ReceiveGroupAudio", (userId, group, audio) => {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            User: userId,
+            UserName: userDetails.Usernames[userId],
+            SentTo: group,
+            SentName: "Group",
+            SentTime: new Date(),
+            Message: audio,
+            IsAudio: true,
+          },
+        ]);
+      });
+
       connection.on("ReceiveGroupNames", (groupNames) => {
         setUserDetails((user) => ({
           ...user,
@@ -168,6 +211,12 @@ function ChatComponent() {
   const handleCloseStartChatPopover = () => {
     setOpenStartChatPopover(null);
     setSelectedGroup(null);
+  };
+
+  const handleAudioDelete = () => {
+    setAudioBlob(null);
+    setAudioUrl(null);
+    audioRef.current.value = null;
   };
 
   const sendMessage = async () => {
@@ -246,49 +295,53 @@ function ChatComponent() {
         setSelectedFile(null);
       };
       reader.readAsDataURL(selectedFile); // Convert file to base64
+    } else if (audioBlob && audioBlob.size > 0) {
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      // Convert ArrayBuffer to Uint8Array
+      const bytes = new Uint8Array(arrayBuffer);
+
+      // Function to convert Uint8Array to Base64 string
+      function uint8ArrayToBase64(bytes) {
+        const binary = [];
+        for (let i = 0; i < bytes.length; i++) {
+          binary.push(String.fromCharCode(bytes[i]));
+        }
+        return btoa(binary.join(""));
+      }
+
+      const base64String = uint8ArrayToBase64(bytes);
+      if (connection && currentChat.Id != null) {
+        if (!currentChat.IsGroup) {
+          await connection.invoke(
+            "SendAudioToUser",
+            userDetails.UserId,
+            currentChat.Id,
+            base64String,
+          );
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            {
+              User: userDetails.UserId,
+              Message: base64String,
+              SentTo: currentChat.Id,
+              SentTime: new Date(),
+              IsAudio: true,
+            },
+          ]);
+        } else if (currentChat.IsGroup) {
+          await connection.invoke(
+            "SendAudioToGroup",
+            currentChat.Id,
+            base64String,
+          );
+        }
+      }
+      setAudioBlob(null);
+      setAudioUrl(null);
+      audioRef.current.value = null;
     } else {
       console.log("No file selected or no connection.");
     }
-
-    // if (selectedFile) {
-    //   const reader = new FileReader();
-    //   console.log("Test");
-    //   reader.onload = async () => {
-    //     const base64Data = reader.result.split(",")[1];
-    //     console.log("base64data: ", selectedFile);
-    //     if (connection && currentChat.Id != null) {
-    //       if (!currentChat.IsGroup) {
-    //         await connection.invoke(
-    //           "SendFileToUser",
-    //           userDetails.UserId,
-    //           currentChat.Id,
-    //           selectedFile.name,
-    //           base64Data,
-    //         );
-    //         // setMessages((prevMessages) => [
-    //         //   ...prevMessages,
-    //         //   {
-    //         //     User: userDetails.UserId,
-    //         //     Message: selectedFile,
-    //         //     SentTo: currentChat.Id,
-    //         //     SentTime: new Date(),
-    //         //   },
-    //         // ]);
-    //       } else if (currentChat.IsGroup) {
-    //         await connection.invoke(
-    //           "SendFileToGroup",
-    //           currentChat.Id,
-    //           selectedFile.name,
-    //           base64Data,
-    //         );
-    //       }
-    //       setSelectedFile(null);
-    //     }
-    //   };
-    //   reader.onerror = (error) => {
-    //     console.error("FileReader error: ", error);
-    //   };
-    // }
   };
 
   const handleKeyDown = (event) => {
@@ -357,14 +410,48 @@ function ChatComponent() {
     setSelectedFile(event.target.files[0]);
   };
 
+  const stopRecording = () => {
+    // Stop the media recorder
+    mediaRecorderRef.current.stop();
+    setIsMicOn(false);
+  };
+
+  const startRecording = async () => {
+    // Request access to the user's microphone
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    // Create a new MediaRecorder instance
+    mediaRecorderRef.current = new MediaRecorder(stream);
+
+    // Clear previous audio chunks if any
+    audioChunksRef.current = [];
+
+    // Collect audio data in chunks
+    mediaRecorderRef.current.ondataavailable = (event) => {
+      audioChunksRef.current.push(event.data);
+    };
+
+    // When recording stops, create a Blob and a URL for the recorded audio
+    mediaRecorderRef.current.onstop = () => {
+      const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      setAudioBlob(audioBlob);
+      setAudioUrl(audioUrl);
+    };
+
+    // Start recording
+    mediaRecorderRef.current.start();
+    setIsMicOn(true);
+  };
+
   const open = Boolean(openStartChatPopover);
   const id = open ? "start-chat" : undefined;
 
   return (
     <>
-      <Box height={"100%"} width={"100%"}>
-        <Box display={"flex"} flexDirection={"column"}>
-          <Box justifyItems={"right"} borderBottom={"1px solid #140d0dff"}>
+      <Box height="100%" width="100%">
+        <Box display="flex" flexDirection="column">
+          <Box justifyItems="right" borderBottom="1px solid #140d0dff">
             <Tooltip title={userDetails.Username} placement="bottom">
               <div style={{ margin: 7 }}>
                 <AvatarInitial initial={userDetails.Username.slice(0, 1)} />
@@ -372,8 +459,8 @@ function ChatComponent() {
             </Tooltip>
           </Box>
 
-          <Grid container height={"calc(100vh - 50px)"}>
-            <Grid size={3} borderRight={"1px solid #e5e5e5"}>
+          <Grid container height="calc(100vh - 50px)">
+            <Grid size={3} borderRight="1px solid #e5e5e5">
               <Grid container p={2}>
                 <Button
                   variant="contained"
@@ -401,10 +488,10 @@ function ChatComponent() {
                   }}
                 >
                   <Box
-                    width={"100%"}
-                    display={"flex"}
-                    flexDirection={"column"}
-                    justifyContent={"center"}
+                    width="100%"
+                    display="flex"
+                    flexDirection="column"
+                    justifyContent="center"
                   >
                     <Autocomplete
                       multiple
@@ -463,9 +550,9 @@ function ChatComponent() {
                   <Grid
                     container
                     pt={1}
-                    display={"flex"}
-                    flexDirection={"row"}
-                    justifyContent={"space-between"}
+                    display="flex"
+                    flexDirection="row"
+                    justifyContent="space-between"
                   >
                     <Button
                       variant="contained"
@@ -490,7 +577,7 @@ function ChatComponent() {
                 </Popover>
               </Grid>
               <Grid marginTop={1}>
-                <Box display={"flex"} flexDirection={"column"}>
+                <Box display="flex" flexDirection="column">
                   {messages
                     .map((x) => {
                       if (x.SentTo == userDetails.UserId) {
@@ -506,11 +593,11 @@ function ChatComponent() {
                     .map((x) => {
                       return (
                         <Box
-                          borderBottom={"1px solid black"}
-                          borderTop={"1px solid black"}
+                          borderBottom="1px solid black"
+                          borderTop="1px solid black"
                           paddingTop={1}
                           paddingBottom={1}
-                          textAlign={"center"}
+                          textAlign="center"
                           fontSize={20}
                           onClick={() => {
                             if (userDetails.Usernames[x])
@@ -528,15 +615,15 @@ function ChatComponent() {
             <Grid size={9}>
               {currentChat.Id != null && (
                 <Box
-                  display={"flex"}
-                  flexDirection={"column"}
-                  justifyContent={"space-between"}
-                  height={"100%"}
+                  display="flex"
+                  flexDirection="column"
+                  justifyContent="space-between"
+                  height="100%"
                 >
                   <Box
-                    display={"flex"}
-                    flexDirection={"row"}
-                    alignItems={"center"}
+                    display="flex"
+                    flexDirection="row"
+                    alignItems="center"
                     gap={1}
                   >
                     <AvatarInitial
@@ -564,11 +651,11 @@ function ChatComponent() {
                     {messages.length > 0 && (
                       <>
                         <Box
-                          display={"flex"}
+                          display="flex"
                           sx={{
                             padding: 2,
                           }}
-                          flexDirection={"column"}
+                          flexDirection="column"
                         >
                           {messages.map((x) => {
                             if (currentChat.Id != null)
@@ -604,9 +691,18 @@ function ChatComponent() {
                                           )
                                         }
                                       >
-                                        {x.IsFile
-                                          ? x.Message.filename
-                                          : x.Message}
+                                        {x.IsFile ? (
+                                          x.Message.filename
+                                        ) : x.IsAudio ? (
+                                          <audio controls>
+                                            <source
+                                              src={`data:audio/mp3;base64,${x.Message}`}
+                                              type="audio/mp3"
+                                            />
+                                          </audio>
+                                        ) : (
+                                          x.Message
+                                        )}
                                       </Box>
                                     </Box>
                                   </>
@@ -650,12 +746,12 @@ function ChatComponent() {
                     />
                   </Box>
                   <Box
-                    display={"flex"}
+                    display="flex"
                     mx={1}
                     mb={5}
                     border={1}
                     borderRadius={1}
-                    flexDirection={"column"}
+                    flexDirection="column"
                   >
                     <Box>
                       {selectedFile && (
@@ -665,7 +761,35 @@ function ChatComponent() {
                         ></Chip>
                       )}
                     </Box>
-                    <Box display={"flex"} flexDirection={"row"}>
+
+                    {audioUrl && (
+                      <Box
+                        m={1}
+                        sx={{
+                          display: "flex",
+                          flexDirection: "row",
+                          justifyContent: "flex-start",
+                          alignItems: "center",
+                        }}
+                      >
+                        <audio
+                          style={{
+                            height: "40px", // Set height here
+                          }}
+                          ref={audioRef}
+                          controls
+                        />
+                        <DeleteIcon
+                          sx={{
+                            fontSize: 28,
+                            color: "red",
+                          }}
+                          onClick={handleAudioDelete}
+                        />
+                      </Box>
+                    )}
+
+                    <Box display="flex" flexDirection="row">
                       <Input
                         sx={{ padding: 1 }}
                         disableUnderline
@@ -679,11 +803,16 @@ function ChatComponent() {
                         onKeyDown={handleKeyDown}
                       />
                       <Box
-                        display={"flex"}
-                        flexDirection={"row"}
+                        display="flex"
+                        flexDirection="row"
                         gap={1}
-                        alignItems={"center"}
+                        alignItems="center"
                       >
+                        {isMicOn ? (
+                          <MicIcon onClick={stopRecording} />
+                        ) : (
+                          <MicOffIcon onClick={startRecording} />
+                        )}
                         <label htmlFor="files" style={{ alignSelf: "center" }}>
                           <AttachmentOutlinedIcon
                             fontSize="medium"
