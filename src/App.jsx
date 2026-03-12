@@ -5,6 +5,7 @@ import "./App.css";
 import { useState } from "react";
 import { UserDetailsContext } from "./context";
 import Connection from "./Connection";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
 
 function App() {
   const [userDetails, setUserDetails] = useState({
@@ -14,18 +15,26 @@ function App() {
     Groupnames: [],
   });
 
+  const theme = createTheme({
+    colorSchemes: {
+      dark: true,
+    },
+  });
+
   return (
     <>
-      <Connection>
-        <UserDetailsContext value={{ userDetails, setUserDetails }}>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<LoginForm />} />
-              <Route path="/chat" element={<ChatComponent />} />
-            </Routes>
-          </BrowserRouter>
-        </UserDetailsContext>
-      </Connection>
+      <ThemeProvider theme={theme}>
+        <Connection>
+          <UserDetailsContext value={{ userDetails, setUserDetails }}>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<LoginForm />} />
+                <Route path="/chat" element={<ChatComponent />} />
+              </Routes>
+            </BrowserRouter>
+          </UserDetailsContext>
+        </Connection>
+      </ThemeProvider>
     </>
   );
 }

@@ -8,10 +8,6 @@ import {
   Typography,
   Autocomplete,
   Tooltip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   Select,
   FormControl,
@@ -29,6 +25,9 @@ import AttachmentOutlinedIcon from "@mui/icons-material/AttachmentOutlined";
 import MicIcon from "@mui/icons-material/Mic";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import DeleteIcon from "@mui/icons-material/Delete";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { useColorScheme } from "@mui/material/styles";
+import CreateGroupPopup from "./components/shared/CreateGroupPopup";
 
 function ChatComponent() {
   const { userDetails, setUserDetails } = useContext(UserDetailsContext);
@@ -51,10 +50,6 @@ function ChatComponent() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const audioRef = useRef(null);
-
-  useEffect(() => {
-    console.log("Messages: ", messages);
-  }, [messages]);
 
   useEffect(() => {
     if (audioRef.current && !isMicOn) {
@@ -177,6 +172,11 @@ function ChatComponent() {
       });
     }
   }, [connection]);
+
+  const { mode, setMode } = useColorScheme();
+  if (!mode) {
+    return null;
+  }
 
   const handleClickNewChatPopover = async (event) => {
     setOpenStartChatPopover(event.currentTarget);
@@ -453,8 +453,16 @@ function ChatComponent() {
         <Box display="flex" flexDirection="column">
           <Box justifyItems="right" borderBottom="1px solid #140d0dff">
             <Tooltip title={userDetails.Username} placement="bottom">
-              <div style={{ margin: 7 }}>
+              <div
+                style={{
+                  margin: 7,
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
                 <AvatarInitial initial={userDetails.Username.slice(0, 1)} />
+                <MoreVertIcon onClick={() => setMode("dark")} />
               </div>
             </Tooltip>
           </Box>
@@ -513,9 +521,7 @@ function ChatComponent() {
                       )}
                     />
                     <Divider>
-                      <Typography sx={{ fontSize: "12px", color: "gray" }}>
-                        OR
-                      </Typography>
+                      <Typography sx={{ fontSize: "12px" }}>OR</Typography>
                     </Divider>
                     <FormControl sx={{ minWidth: 120 }}>
                       <InputLabel id="demo-simple-select-helper-label">
@@ -593,8 +599,8 @@ function ChatComponent() {
                     .map((x) => {
                       return (
                         <Box
-                          borderBottom="1px solid black"
-                          borderTop="1px solid black"
+                          borderBottom="1px solid"
+                          borderTop="1px solid"
                           paddingTop={1}
                           paddingBottom={1}
                           textAlign="center"
@@ -618,7 +624,7 @@ function ChatComponent() {
                   display="flex"
                   flexDirection="column"
                   justifyContent="space-between"
-                  height="100%"
+                  sx={{ height: "calc(100vh - 80px)" }}
                 >
                   <Box
                     display="flex"
@@ -638,117 +644,12 @@ function ChatComponent() {
                         userDetails.Usernames[currentChat.Id])}
                   </Box>
                   {/* chats */}
-                  <Box
-                    sx={{
-                      mb: 2,
-                      display: "flex",
-                      flexDirection: "column-reverse",
-                      flex: 1,
-                      overflow: "hidden",
-                      overflowY: "scroll",
-                    }}
-                  >
-                    {messages.length > 0 && (
-                      <>
-                        <Box
-                          display="flex"
-                          sx={{
-                            padding: 2,
-                          }}
-                          flexDirection="column"
-                        >
-                          {messages.map((x) => {
-                            if (currentChat.Id != null)
-                              if (
-                                userDetails.Usernames[x.SentTo] &&
-                                ((x.User == currentChat.Id &&
-                                  x.SentTo == userDetails.UserId) ||
-                                  (x.User == userDetails.UserId &&
-                                    x.SentTo == currentChat.Id))
-                              ) {
-                                return (
-                                  <>
-                                    <Box
-                                      alignSelf={
-                                        x.User == userDetails.UserId
-                                          ? "end"
-                                          : "start"
-                                      }
-                                    >
-                                      <Box
-                                        sx={{
-                                          border: "1px solid black",
-                                          padding: 2,
-                                          borderRadius: "16px",
-                                          marginTop: 2,
-                                        }}
-                                        onClick={() =>
-                                          x.IsFile &&
-                                          downloadFile(
-                                            x.Message.filename,
-                                            x.Message.filedata,
-                                            x.Message.filetype,
-                                          )
-                                        }
-                                      >
-                                        {x.IsFile ? (
-                                          x.Message.filename
-                                        ) : x.IsAudio ? (
-                                          <audio controls>
-                                            <source
-                                              src={`data:audio/mp3;base64,${x.Message}`}
-                                              type="audio/mp3"
-                                            />
-                                          </audio>
-                                        ) : (
-                                          x.Message
-                                        )}
-                                      </Box>
-                                    </Box>
-                                  </>
-                                );
-                              } else if (currentChat.Id == x.SentTo) {
-                                return (
-                                  <>
-                                    <Box
-                                      alignSelf={
-                                        x.User == userDetails.UserId
-                                          ? "end"
-                                          : "start"
-                                      }
-                                    >
-                                      <Typography fontSize={12}>
-                                        {x.User != userDetails.UserId
-                                          ? userDetails.Usernames[x.User]
-                                          : "you"}
-                                      </Typography>
-                                      <Box
-                                        sx={{
-                                          border: "1px solid black",
-                                          padding: 2,
-                                          borderRadius: "16px",
-                                        }}
-                                      >
-                                        {x.Message}
-                                      </Box>
-                                    </Box>
-                                  </>
-                                );
-                              }
-                          })}
-                        </Box>
-                      </>
-                    )}
-                    <EmojiPicker
-                      open={showEmojiPicker}
-                      style={{ position: "absolute", bottom: 85, right: 16 }}
-                      onEmojiClick={handleEmojiClick}
-                    />
-                  </Box>
+                  {showMessageBox()}
+                  {/* Input Box */}
                   <Box
                     display="flex"
                     mx={1}
-                    mb={5}
+                    mb={3}
                     border={1}
                     borderRadius={1}
                     flexDirection="column"
@@ -758,7 +659,7 @@ function ChatComponent() {
                         <Chip
                           label={selectedFile && selectedFile.name}
                           onDelete={() => setSelectedFile(null)}
-                        ></Chip>
+                        />
                       )}
                     </Box>
 
@@ -855,7 +756,7 @@ function ChatComponent() {
           </Grid>
         </Box>
       </Box>
-      {newFunction(
+      {CreateGroupPopup(
         openGroupPopup,
         handleGroupPopupClose,
         newGroupName,
@@ -864,42 +765,101 @@ function ChatComponent() {
       )}
     </>
   );
+
+  function showMessageBox() {
+    return (
+      <Box
+        sx={{
+          mb: 2,
+          display: "flex",
+          flexDirection: "column-reverse",
+          flex: 1,
+          overflowY: "auto",
+        }}
+      >
+        {messages.length > 0 && (
+          <Box
+            display="flex"
+            sx={{
+              padding: 2,
+            }}
+            flexDirection="column"
+          >
+            {messages.map((x) => {
+              if (currentChat.Id != null)
+                if (
+                  userDetails.Usernames[x.SentTo] &&
+                  ((x.User == currentChat.Id &&
+                    x.SentTo == userDetails.UserId) ||
+                    (x.User == userDetails.UserId &&
+                      x.SentTo == currentChat.Id))
+                ) {
+                  return (
+                    <Box
+                      alignSelf={x.User == userDetails.UserId ? "end" : "start"}
+                    >
+                      {showMessages(x)}
+                    </Box>
+                  );
+                } else if (currentChat.Id == x.SentTo) {
+                  return (
+                    <Box
+                      alignSelf={x.User == userDetails.UserId ? "end" : "start"}
+                    >
+                      <Typography fontSize={12}>
+                        {x.User != userDetails.UserId
+                          ? userDetails.Usernames[x.User]
+                          : "you"}
+                      </Typography>
+                      {showMessages(x)}
+                    </Box>
+                  );
+                }
+            })}
+          </Box>
+        )}
+        <EmojiPicker
+          open={showEmojiPicker}
+          style={{ position: "absolute", bottom: 85, right: 16 }}
+          onEmojiClick={handleEmojiClick}
+        />
+      </Box>
+    );
+  }
+
+  function showMessages(x) {
+    return (
+      <Box
+        sx={{
+          border: "1px solid",
+          padding: 2,
+          borderRadius: "16px",
+          marginTop: 2,
+        }}
+        onClick={() =>
+          x.IsFile &&
+          downloadFile(
+            x.Message.filename,
+            x.Message.filedata,
+            x.Message.filetype,
+          )
+        }
+      >
+        {x.IsFile ? (
+          x.Message.filename
+        ) : x.IsAudio ? (
+          <audio controls>
+            <source
+              src={`data:audio/mp3;base64,${x.Message}`}
+              type="audio/mp3"
+            />
+          </audio>
+        ) : (
+          x.Message
+        )}
+      </Box>
+    );
+  }
 }
 
 export default ChatComponent;
-function newFunction(
-  openGroupPopup,
-  handleGroupPopupClose,
-  newGroupName,
-  handleGroupPopupInputChange,
-  handleGroupPopupSubmit,
-) {
-  return (
-    <Dialog
-      open={openGroupPopup}
-      onClose={handleGroupPopupClose}
-      slotProps={{ paper: { sx: { minWidth: 445 } } }}
-    >
-      <DialogTitle>Create Group</DialogTitle>
-      <DialogContent>
-        <TextField
-          autoFocus // Automatically focuses the input field when the dialog opens
-          margin="dense"
-          id="name"
-          label="Enter Group Name"
-          type="email"
-          fullWidth
-          variant="standard"
-          value={newGroupName}
-          onChange={handleGroupPopupInputChange}
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleGroupPopupClose}>Cancel</Button>
-        <Button onClick={handleGroupPopupSubmit} variant="contained">
-          Create
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
