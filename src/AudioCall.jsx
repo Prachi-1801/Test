@@ -1,17 +1,14 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 
 function AudioCall() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
-  const [audioBlob, setAudioBlob] = useState(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const audioRef = useRef(null);
   const buttonRef = useRef(null); // Ref for the button
 
   useEffect(() => {
-    console.log("useEffect called");
-
     // Click event listener for detecting outside clicks
     const handleOutsideClick = (event) => {
       // Check if the clicked target is outside the button
@@ -51,7 +48,6 @@ function AudioCall() {
     mediaRecorderRef.current.onstop = () => {
       const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
       const audioUrl = URL.createObjectURL(audioBlob);
-      setAudioBlob(audioBlob);
       setAudioUrl(audioUrl);
     };
 
@@ -68,7 +64,6 @@ function AudioCall() {
 
   useEffect(() => {
     if (audioUrl && !isRecording) {
-      console.log("found audioUrl");
       audioRef.current.src = audioUrl;
     }
   }, [audioUrl, isRecording]);

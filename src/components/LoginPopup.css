@@ -1,0 +1,240 @@
+.popup {
+  position: relative;
+  z-index: 10;
+  width: 355px;
+  background: rgba(255, 255, 255, 0.93);
+  border-radius: 28px;
+  padding: 38px 34px 32px;
+  box-shadow:
+    0 8px 48px rgba(123, 79, 255, 0.28),
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 #fff;
+  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.82) translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* .popup::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  border-radius: 28px 28px 0 0;
+  background: linear-gradient(90deg, #e96cff, #7b4fff, #3a8eff, #00e5c8);
+} */
+
+.avatar-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e96cff, #7b4fff, #3a8eff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 4px 20px rgba(123, 79, 255, 0.4);
+}
+
+.heading {
+  text-align: center;
+  font-size: 21px;
+  font-weight: 700;
+  color: #1a1230;
+  margin-bottom: 3px;
+}
+
+.subtext {
+  text-align: center;
+  font-size: 13px;
+  color: #9992b0;
+  margin-bottom: 26px;
+}
+
+.field-group {
+  margin-bottom: 13px;
+}
+
+.field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7b4fff;
+  margin-bottom: 5px;
+}
+
+.field-wrap {
+  position: relative;
+}
+
+.field-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: #c4bcd8;
+}
+
+.field-input {
+  width: 85%;
+  background: #f4f1fb;
+  border: 1.5px solid #ebe6f7;
+  border-radius: 12px;
+  padding: 11px 13px 11px 36px;
+  font-size: 13px;
+  color: #1a1230;
+  font-family: "Outfit", sans-serif;
+  outline: none;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.field-input::placeholder {
+  color: #c4bcd8;
+}
+
+.field-input:focus {
+  border-color: #7b4fff;
+  box-shadow: 0 0 0 3px rgba(123, 79, 255, 0.12);
+}
+
+.options-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 0 20px;
+}
+
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #9992b0;
+  cursor: pointer;
+}
+
+.remember input {
+  accent-color: #7b4fff;
+}
+
+.forgot {
+  font-size: 12px;
+  color: #7b4fff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.sign-btn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: "Outfit", sans-serif;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(90deg, #e96cff 0%, #7b4fff 50%, #3a8eff 100%);
+  background-size: 200% 100%;
+  background-position: 0% 0%;
+  transition:
+    background-position 0.5s,
+    transform 0.15s,
+    box-shadow 0.2s;
+  box-shadow: 0 4px 20px rgba(123, 79, 255, 0.45);
+  letter-spacing: 0.02em;
+}
+
+.sign-btn:hover {
+  background-position: 100% 0%;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(123, 79, 255, 0.55);
+}
+
+.sign-btn:active {
+  transform: scale(0.98);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.dline {
+  flex: 1;
+  height: 1px;
+  background: #ebe6f7;
+}
+
+.dtext {
+  font-size: 11px;
+  color: #c4bcd8;
+  letter-spacing: 0.04em;
+}
+
+.social-row {
+  display: flex;
+  gap: 9px;
+}
+
+.social-btn {
+  flex: 1;
+  background: #f4f1fb;
+  border: 1.5px solid #ebe6f7;
+  border-radius: 10px;
+  padding: 9px;
+  font-size: 11px;
+  font-family: "Outfit", sans-serif;
+  font-weight: 500;
+  color: #5a4f7a;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.15s;
+}
+
+.social-btn:hover {
+  background: #ede8f9;
+  border-color: #c4b8ef;
+  transform: translateY(-1px);
+}
+
+.footer-text {
+  text-align: center;
+  font-size: 12px;
+  color: #9992b0;
+  margin-top: 18px;
+}
+
+.footer-text a {
+  background: linear-gradient(90deg, #e96cff, #7b4fff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600;
+  text-decoration: none;
+}

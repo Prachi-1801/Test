@@ -5,7 +5,7 @@ var baseQuery = import.meta.env.VITE_API;
 export const deleteCustomer = async (customerId) => {
   try {
     let response = await axios.delete(
-      baseQuery + "/Customer/DeleteCustomer/" + customerId
+      baseQuery + "/Customer/DeleteCustomer/" + customerId,
     );
     return response.data.StatusCode;
   } catch (error) {
@@ -15,11 +15,10 @@ export const deleteCustomer = async (customerId) => {
 export const viewAll = async (
   setApiResponse,
   setFilteredApiResponse,
-  setError
+  setError,
 ) => {
   try {
     // Replace with your .NET API endpoint
-    console.log("URL:", baseQuery + "/Customer/GetCustomers");
     const response = await axios.get(baseQuery + "/Customer/GetCustomers");
     response.data.Result.forEach((element, index) => {
       element["index"] = index + 1;

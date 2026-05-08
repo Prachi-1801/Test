@@ -62,7 +62,7 @@ export default function ShowForm() {
         } else {
           return customer;
         }
-      })
+      }),
     );
   }
 
@@ -74,7 +74,7 @@ export default function ShowForm() {
         } else {
           return customer;
         }
-      })
+      }),
     );
   }
 
@@ -86,7 +86,7 @@ export default function ShowForm() {
         } else {
           return customer;
         }
-      })
+      }),
     );
   }
 
@@ -98,7 +98,7 @@ export default function ShowForm() {
         } else {
           return customer;
         }
-      })
+      }),
     );
   }
 
@@ -110,7 +110,7 @@ export default function ShowForm() {
         } else {
           return customer;
         }
-      })
+      }),
     );
   }
 
@@ -122,7 +122,7 @@ export default function ShowForm() {
         } else {
           return customer;
         }
-      })
+      }),
     );
   }
 
@@ -281,7 +281,6 @@ export default function ShowForm() {
                         <button
                           onClick={() => {
                             setIsUpdated({ index: item["index"] });
-                            console.log(isUpdated["index"]);
                           }}
                         >
                           Edit
@@ -296,8 +295,8 @@ export default function ShowForm() {
                             if (isNewRow)
                               setApiResponse(
                                 apiResponse.filter(
-                                  (x) => x.index != item["index"]
-                                )
+                                  (x) => x.index != item["index"],
+                                ),
                               );
                             setIsNewRow(false);
                             setIsUpdated({ index: "" });

@@ -22,7 +22,7 @@ function AddTableData({
 
   function handleInput(e) {
     setIsInputValid(
-      "maxLength" in column ? e.target.value.length == column.maxLength : true
+      "maxLength" in column ? e.target.value.length == column.maxLength : true,
     );
     let originalApiResponse = apiResponse.map((customer) => {
       if (customer.index === item["index"]) {
@@ -76,7 +76,7 @@ const ShowForm = () => {
           } else {
             return customer;
           }
-        })
+        }),
       );
       setFilteredApiResponse(apiResponse);
     };
@@ -90,7 +90,6 @@ const ShowForm = () => {
   };
 
   const downloadCellRenderer = (item) => {
-    console.log(item);
     return (
       <>
         <button
@@ -263,13 +262,13 @@ const ShowForm = () => {
           ? [...apiResponse].sort((a, b) =>
               currentSortOrder.sort == "desc"
                 ? b[currentSortOrder.name].localeCompare(
-                    a[currentSortOrder.name]
+                    a[currentSortOrder.name],
                   )
                 : a[currentSortOrder.name].localeCompare(
-                    b[currentSortOrder.name]
-                  )
+                    b[currentSortOrder.name],
+                  ),
             )
-          : apiResponse
+          : apiResponse,
       );
     }
   }
@@ -332,8 +331,8 @@ const ShowForm = () => {
             onChange={(e) => {
               setFilteredApiResponse(() =>
                 [...apiResponse].filter((x) =>
-                  x.name.toLowerCase().includes(e.target.value.toLowerCase())
-                )
+                  x.name.toLowerCase().includes(e.target.value.toLowerCase()),
+                ),
               );
             }}
           />
@@ -422,7 +421,7 @@ const ShowForm = () => {
                   endIndex={endIndex}
                   setEndIndex={setEndIndex}
                   selectedCount={selectedCount}
-                  setSelectedCount={setSelectedCount} 
+                  setSelectedCount={setSelectedCount}
                 ></Pagination>
               </Box>
             </Grid>

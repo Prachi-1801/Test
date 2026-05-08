@@ -47,7 +47,7 @@ const StyledMenu = styled((props) => (
       "&:active": {
         backgroundColor: alpha(
           theme.palette.primary.main,
-          theme.palette.action.selectedOpacity
+          theme.palette.action.selectedOpacity,
         ),
       },
     },
@@ -70,10 +70,8 @@ export default function CustomizedMenus({ showGrid, setFileUrl, data }) {
   };
 
   const handlePdf = (data) => {
-    console.log("Handlepdf Data", data);
     const docDefinition = getTableDocDefinition(data);
 
-    console.log("DocDefinition", docDefinition);
     const pdf = generateTablePdf(docDefinition);
 
     pdf.getDataUrl((url) => {

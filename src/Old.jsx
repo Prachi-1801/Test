@@ -82,7 +82,6 @@ function ChatComponent() {
             labelId="demo-simple-select-standard-label"
             id="demo-simple-select-standard"
             value={user}
-            // onChange={handleChange}
             label="Users"
           >
             {users.map((item) => {
@@ -137,7 +136,6 @@ function ChatComponent() {
                   id="standard-basic"
                   label="Message"
                   value={message}
-                  // placeholder="Message"
                   variant="standard"
                   onChange={(e) => {
                     setMessage(e.target.value);

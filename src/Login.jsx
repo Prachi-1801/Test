@@ -1,44 +1,70 @@
-import { Box, Button, TextField, Typography } from "@mui/material";
-import { useContext, useEffect } from "react";
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  FormControl,
+  InputLabel,
+  OutlinedInput,
+  InputAdornment,
+  IconButton,
+} from "@mui/material";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserDetailsContext, ConnectionContext } from "./context";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { buildConnection, connectionRef } from "./Connection";
+import { useDispatch } from "react-redux";
+import {
+  useLoginMutation,
+  useSaveConnectionIdMutation,
+} from "./api/AuthAxiosApi";
+import { setConnectionStatus } from "./features/connectionSlice";
+import { setCredentials } from "./features/authSlice";
 
 const LoginForm = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const { userDetails, setUserDetails } = useContext(UserDetailsContext);
-  const connection = useContext(ConnectionContext);
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  useEffect(() => {
-    if (connection) {
-      connection.on("ReceiveUser", (user) => {
-        setUserDetails((item) => ({
-          ...item,
-          Usernames: { ...user },
-        }));
-      });
+  const [login] = useLoginMutation();
+  const saveConnectionId = useSaveConnectionIdMutation();
 
-      connection
-        .start()
-        .then(() => {
-          // Now it is safe to call Hub methods
-          connection
-            .invoke("GetAllGroups")
-            .then((response) => {
-              if (response != null)
-                setUserDetails((item) => ({
-                  ...item,
-                  Groupnames: Object.entries(response)?.map(([key, value]) => ({
-                    GroupName: key,
-                    Users: value,
-                  })),
-                }));
-            })
-            .catch((err) => console.error(err.toString()));
-        })
-        .catch((err) => console.error(err));
+  const handleLogin = async () => {
+    try {
+      const result = await login({ identifier, password }).unwrap();
+
+      dispatch(setCredentials({ token: result.token, userId: result.userId }));
+
+      buildConnection(result.token);
+      dispatch(setConnectionStatus("connecting"));
+
+      await connectionRef.current.start();
+      dispatch(setConnectionStatus("connected"));
+
+      const connectionId =
+        await connectionRef.current.invoke("GetConnectionId");
+      await saveConnectionId({ userId: result.userId, connectionId }).unwrap();
+
+      navigate("/chat");
+    } catch (err) {
+      console.error("Login failed:", err);
+      dispatch(setConnectionStatus("disconnected"));
     }
-  }, [connection]);
+  };
+
+  const handleClickShowPassword = () => setShowPassword((show) => !show);
+
+  const handleMouseDownPassword = (event) => {
+    event.preventDefault();
+  };
+
+  const handleMouseUpPassword = (event) => {
+    event.preventDefault();
+  };
 
   return (
     <>
@@ -48,6 +74,7 @@ const LoginForm = () => {
           justifyContent: "center",
           alignItems: "center",
           height: "100vh",
+          flexDirection: "column",
         }}
       >
         <Box
@@ -57,12 +84,11 @@ const LoginForm = () => {
             flexDirection: "column",
             paddingLeft: 10,
             paddingRight: 10,
-            paddingBottom: 5,
-            gap: 2,
+            paddingBottom: 1,
           }}
         >
           <Typography paddingBottom={3} fontSize={30}>
-            Test App
+            Login
           </Typography>
           <Box
             sx={{
@@ -73,28 +99,66 @@ const LoginForm = () => {
             }}
           >
             <TextField
-              error={userDetails.Username.length <= 0}
+              error={identifier.length <= 0}
               size="small"
               id="outlined-basic"
               label="UserName"
               variant="outlined"
+              value={identifier}
               onChange={(e) => {
-                setUserDetails((u) => ({ ...u, Username: e.target.value }));
+                setIdentifier(e.target.value);
               }}
             />
+            <FormControl
+              sx={{ width: "30ch" }}
+              variant="outlined"
+              error={password.length <= 0}
+            >
+              <InputLabel htmlFor="outlined-adornment-password" size="small">
+                Password
+              </InputLabel>
+              <OutlinedInput
+                error={password.length <= 0}
+                size="small"
+                id="outlined-adornment-password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                }}
+                endAdornment={
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={
+                        showPassword
+                          ? "hide the password"
+                          : "display the password"
+                      }
+                      onClick={handleClickShowPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      onMouseUp={handleMouseUpPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                }
+                label="Password"
+              />
+            </FormControl>
+            <Button variant="outlined" onClick={handleLogin}>
+              Login
+            </Button>
           </Box>
+        </Box>
+        <Box display={"flex"} flexDirection={"row"} alignItems={"center"}>
+          <Typography>Don't have account </Typography>
           <Button
-            variant="outlined"
-            onClick={async () => {
-              if (userDetails.Username.trim().length > 0) {
-                await connection.invoke("AddUser", userDetails.Username);
-                var connectionId = await connection.invoke("GetConnectionId");
-                setUserDetails((u) => ({ ...u, UserId: connectionId }));
-                navigate("/chat");
-              }
+            onClick={() => {
+              navigate("/register");
             }}
           >
-            Login
+            Create Account
           </Button>
         </Box>
       </Box>

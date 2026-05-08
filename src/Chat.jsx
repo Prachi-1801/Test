@@ -25,8 +25,6 @@ import AttachmentOutlinedIcon from "@mui/icons-material/AttachmentOutlined";
 import MicIcon from "@mui/icons-material/Mic";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import DeleteIcon from "@mui/icons-material/Delete";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { useColorScheme } from "@mui/material/styles";
 import CreateGroupPopup from "./components/shared/CreateGroupPopup";
 
 function ChatComponent() {
@@ -172,11 +170,6 @@ function ChatComponent() {
       });
     }
   }, [connection]);
-
-  const { mode, setMode } = useColorScheme();
-  if (!mode) {
-    return null;
-  }
 
   const handleClickNewChatPopover = async (event) => {
     setOpenStartChatPopover(event.currentTarget);
@@ -339,8 +332,6 @@ function ChatComponent() {
       setAudioBlob(null);
       setAudioUrl(null);
       audioRef.current.value = null;
-    } else {
-      console.log("No file selected or no connection.");
     }
   };
 
@@ -350,7 +341,7 @@ function ChatComponent() {
     }
   };
 
-  const handleAutocompleteChange = (event, value) => {
+  const handleAutocompleteChange = (value) => {
     if (value.length != 0) {
       setSelectedCurrentUsers(value);
     }
@@ -462,7 +453,6 @@ function ChatComponent() {
                 }}
               >
                 <AvatarInitial initial={userDetails.Username.slice(0, 1)} />
-                <MoreVertIcon onClick={() => setMode("dark")} />
               </div>
             </Tooltip>
           </Box>
@@ -827,37 +817,57 @@ function ChatComponent() {
     );
   }
 
+  function formatTime(dateStr) {
+    const date = new Date(dateStr);
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+
+    const hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "pm" : "am";
+    const hour12 = hours % 12 || 12;
+
+    return `${day}/${month}/${year} ${hour12}:${minutes} ${ampm}`;
+  }
+
   function showMessages(x) {
     return (
-      <Box
-        sx={{
-          border: "1px solid",
-          padding: 2,
-          borderRadius: "16px",
-          marginTop: 2,
-        }}
-        onClick={() =>
-          x.IsFile &&
-          downloadFile(
-            x.Message.filename,
-            x.Message.filedata,
-            x.Message.filetype,
-          )
-        }
+      <Tooltip
+        title={formatTime(x.SentTime)}
+        placement={x.User == userDetails.UserId ? "left" : "right"}
       >
-        {x.IsFile ? (
-          x.Message.filename
-        ) : x.IsAudio ? (
-          <audio controls>
-            <source
-              src={`data:audio/mp3;base64,${x.Message}`}
-              type="audio/mp3"
-            />
-          </audio>
-        ) : (
-          x.Message
-        )}
-      </Box>
+        <Box
+          sx={{
+            border: "1px solid",
+            padding: 2,
+            borderRadius: "16px",
+            marginTop: 2,
+          }}
+          onClick={() =>
+            x.IsFile &&
+            downloadFile(
+              x.Message.filename,
+              x.Message.filedata,
+              x.Message.filetype,
+            )
+          }
+        >
+          {x.IsFile ? (
+            x.Message.filename
+          ) : x.IsAudio ? (
+            <audio controls>
+              <source
+                src={`data:audio/mp3;base64,${x.Message}`}
+                type="audio/mp3"
+              />
+            </audio>
+          ) : (
+            x.Message
+          )}
+        </Box>
+      </Tooltip>
     );
   }
 }

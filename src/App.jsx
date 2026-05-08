@@ -1,11 +1,9 @@
-import ChatComponent from "./Chat";
-import LoginForm from "./Login";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import "./App.css";
 import { useState } from "react";
 import { UserDetailsContext } from "./context";
-import Connection from "./Connection";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { createTheme, ThemeProvider } from "@mui/material";
+import ChatRoutes from "./ChatRoutes";
 
 function App() {
   const [userDetails, setUserDetails] = useState({
@@ -13,27 +11,23 @@ function App() {
     UserId: "",
     Usernames: {},
     Groupnames: [],
+    Password: "",
   });
 
   const theme = createTheme({
     colorSchemes: {
-      dark: true,
+      light: true,
     },
   });
 
   return (
     <>
       <ThemeProvider theme={theme}>
-        <Connection>
-          <UserDetailsContext value={{ userDetails, setUserDetails }}>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<LoginForm />} />
-                <Route path="/chat" element={<ChatComponent />} />
-              </Routes>
-            </BrowserRouter>
-          </UserDetailsContext>
-        </Connection>
+        <UserDetailsContext value={{ userDetails, setUserDetails }}>
+          <BrowserRouter>
+            <ChatRoutes />
+          </BrowserRouter>
+        </UserDetailsContext>
       </ThemeProvider>
     </>
   );

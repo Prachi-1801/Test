@@ -21,7 +21,6 @@ export default function AlertDialog() {
   };
 
   const handleGroupPopupSubmit = () => {
-    console.log("Submitted input:", groupName);
     handleGroupPopupClose();
   };
 

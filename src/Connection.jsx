@@ -1,39 +1,15 @@
-import { useEffect, useState } from "react";
+// Connection.jsx
 import * as signalR from "@microsoft/signalr";
-import { ConnectionContext } from "./context";
 
-const Connection = ({ children }) => {
-  const [connection, setConnection] = useState(null);
+export const connectionRef = { current: null }; // module-level ref, importable anywhere
 
-  useEffect(() => {
-    const newConnection = new signalR.HubConnectionBuilder()
-      .withUrl("https://192.168.0.75:7173/chatHub", {
-        skipNegotiation: true,
-        transport: signalR.HttpTransportType.WebSockets,
-      })
-      .withAutomaticReconnect()
-      .build();
-
-    setConnection(newConnection);
-  }, []);
-
-  useEffect(() => {
-    if (connection) {
-      connection
-        .start()
-        .then(() => {
-          console.log("Connection established");
-        })
-        .catch((e) => console.log("Connection failed:", e));
-    }
-
-  }, [connection]);
-
-  return (
-    <ConnectionContext.Provider value={connection}>
-      {children}
-    </ConnectionContext.Provider>
-  );
+export const buildConnection = (token) => {
+  connectionRef.current = new signalR.HubConnectionBuilder()
+    .withUrl("http://localhost:7272/chatHub", {
+      skipNegotiation: true,
+      transport: signalR.HttpTransportType.WebSockets,
+      accessTokenFactory: () => token,
+    })
+    .withAutomaticReconnect()
+    .build();
 };
-
-export default Connection;

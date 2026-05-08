@@ -1,0 +1,50 @@
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.45;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.b1 {
+  width: 360px;
+  height: 360px;
+  top: -100px;
+  left: -80px;
+  background: #e96cff;
+  animation: bl1 9s ease-in-out infinite alternate;
+}
+.b2 {
+  width: 300px;
+  height: 300px;
+  bottom: -80px;
+  right: -60px;
+  background: #3a8eff;
+  animation: bl2 11s ease-in-out infinite alternate;
+}
+.b3 {
+  width: 200px;
+  height: 200px;
+  top: 30%;
+  left: 55%;
+  background: #00e5c8;
+  animation: bl1 13s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes bl1 {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(40px, 30px) scale(1.15);
+  }
+}
+@keyframes bl2 {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(-30px, -40px) scale(1.1);
+  }
+}
