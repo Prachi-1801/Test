@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -6,13 +6,19 @@ import {
   FormControlLabel,
   Checkbox,
   Button,
-  Divider,
-  Stack,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 
 const LoginPopup = () => {
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleTogglePassword = () => setShowPassword((prev) => !prev);
+
   return (
     <Box
       sx={{
@@ -32,11 +38,11 @@ const LoginPopup = () => {
     >
       {/* Avatar */}
       <Box
-        sx={{
+         sx={{
           width: 60,
           height: 60,
           borderRadius: "50%",
-          bgcolor: "linear-gradient(135deg,#e96cff,#7b4fff,#3a8eff)",
+          background: "linear-gradient(135deg,#e96cff,#7b4fff,#3a8eff)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -68,7 +74,9 @@ const LoginPopup = () => {
         type="email"
         InputProps={{
           startAdornment: (
-            <EmailOutlinedIcon sx={{ color: "#c4bcd8", mr: 1 }} />
+            <InputAdornment position="start">
+              <EmailOutlinedIcon sx={{ color: "#c4bcd8" }} />
+            </InputAdornment>
           ),
         }}
         sx={{ mb: 1.5 }}
@@ -80,9 +88,30 @@ const LoginPopup = () => {
         placeholder="••••••••••"
         variant="outlined"
         size="small"
-        type="password"
+        type={showPassword ? "text" : "password"}
         InputProps={{
-          startAdornment: <LockOutlinedIcon sx={{ color: "#c4bcd8", mr: 1 }} />,
+          startAdornment: (
+            <InputAdornment position="start">
+              <LockOutlinedIcon sx={{ color: "#c4bcd8" }} />
+            </InputAdornment>
+          ),
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                onClick={handleTogglePassword}
+                edge="end"
+                size="small"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                sx={{ color: "#c4bcd8", "&:hover": { color: "#7b4fff" } }}
+              >
+                {showPassword ? (
+                  <VisibilityOffOutlinedIcon fontSize="small" />
+                ) : (
+                  <VisibilityOutlinedIcon fontSize="small" />
+                )}
+              </IconButton>
+            </InputAdornment>
+          ),
         }}
         sx={{ mb: 1.5 }}
       />
@@ -128,7 +157,8 @@ const LoginPopup = () => {
           mb: 2,
           "&:hover": {
             background:
-              "linear-gradient(90deg,#e96cff 0%,#7b4fff 50%,#3a8eff 100%)",
+              "linear-gradient(90deg,#3a8eff 0%,#7b4fff 50%,#e96cff 100%)",
+            boxShadow: "0 6px 24px rgba(123,79,255,0.45)",
           },
         }}
       >
@@ -140,7 +170,7 @@ const LoginPopup = () => {
         variant="caption"
         sx={{ textAlign: "center", color: "#9992b0" }}
       >
-        Don’t have an account?{" "}
+        Don't have an account?{" "}
         <Typography
           component="span"
           sx={{
@@ -148,6 +178,7 @@ const LoginPopup = () => {
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             fontWeight: 600,
+            cursor: "pointer",
           }}
         >
           Sign up free

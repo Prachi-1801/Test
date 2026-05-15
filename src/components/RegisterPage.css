@@ -1,0 +1,188 @@
+/* ── Triangle Animations ── */
+@keyframes float1 {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-18px);
+  }
+}
+
+@keyframes float2 {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(16px);
+  }
+}
+
+@keyframes float3 {
+  0%,
+  100% {
+    transform: translate(0px, 0px);
+  }
+  50% {
+    transform: translate(8px, -14px);
+  }
+}
+
+@keyframes float4 {
+  0%,
+  100% {
+    transform: translate(0px, 0px);
+  }
+  50% {
+    transform: translate(-6px, 12px);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tri-float1 {
+  animation: float1 7s ease-in-out infinite;
+}
+.tri-float2 {
+  animation: float2 9s ease-in-out infinite;
+}
+.tri-float3 {
+  animation: float3 11s ease-in-out infinite;
+}
+.tri-float4 {
+  animation: float4 6s ease-in-out infinite;
+}
+.tri-spin {
+  animation: spin 22s linear infinite;
+  transform-origin: 1300px 750px;
+}
+
+/* ── Page Background ── */
+.register-page {
+  min-height: 100vh;
+  background: linear-gradient(
+    135deg,
+    #c850ff 0%,
+    #7b4fff 35%,
+    #3a8eff 65%,
+    #00d4c8 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* ── Triangle SVG Layer ── */
+.tri-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ── Card ── */
+.register-card {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 440px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 36px 36px 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+
+/* ── Profile Photo Section ── */
+.photo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.photo-wrapper {
+  position: relative;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+.photo-camera-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e040fb, #7b4fff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.photo-hint {
+  font-size: 11px;
+  color: #9992b0;
+}
+
+.photo-error {
+  font-size: 11px;
+  color: #ff4d4d;
+}
+
+/* ── Submit Button ── */
+.register-btn {
+  background: linear-gradient(
+    90deg,
+    #e040fb 0%,
+    #7b4fff 50%,
+    #3a8eff 100%
+  ) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  letter-spacing: 0.08em !important;
+  border-radius: 10px !important;
+  padding: 13px !important;
+  box-shadow: 0 4px 20px rgba(123, 79, 255, 0.4) !important;
+  transition:
+    transform 0.15s,
+    box-shadow 0.2s !important;
+}
+
+.register-btn:hover {
+  box-shadow: 0 8px 28px rgba(123, 79, 255, 0.55) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ── Footer ── */
+.register-footer {
+  text-align: center;
+  font-size: 13px;
+  color: #9992b0;
+  margin-top: 16px;
+}
+
+.register-footer .sign-in-link {
+  background: linear-gradient(90deg, #e040fb, #7b4fff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  cursor: pointer;
+}
